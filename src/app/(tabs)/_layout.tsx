@@ -55,7 +55,7 @@ function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 onPress={onPress}
                 style={({ pressed }) => [
                   styles.centerBtn,
-                  pressed && { opacity: 0.88, transform: [{ scale: 0.96 }] },
+                  pressed && { transform: [{ scale: 0.96 }] },
                 ]}
               >
                 <LinearGradient
