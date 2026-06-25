@@ -7,11 +7,9 @@
     "icon": "./assets/images/icon.png",
     "scheme": "kahayag",
     "userInterfaceStyle": "automatic",
-
     "ios": {
       "bundleIdentifier": "com.anonymous.kahayag"
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
@@ -24,12 +22,10 @@
       ],
       "package": "com.anonymous.kahayag"
     },
-
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -45,14 +41,21 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Kahayag to access your camera",
+          "cameraPermission": "Allow Kahayag to access your camera to scan textbook pages.",
           "microphonePermission": "Allow Kahayag to access your microphone",
           "recordAudioAndroid": true,
           "barcodeScannerEnabled": true
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Kahayag to access your photos to scan textbook pages.",
+          "cameraPermission": "Allow Kahayag to access your camera to scan textbook pages."
+        }
+      ],
+      "expo-build-properties"
     ],
-
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
