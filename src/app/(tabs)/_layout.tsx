@@ -3,10 +3,13 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Radius } from "../../constants/theme";
 
 // Custom tab bar with elevated OCR button in the center
 function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+
   const tabs = [
     { name: "index", icon: "home-outline", activeIcon: "home", label: "Home" },
     {
@@ -32,7 +35,15 @@ function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   ];
 
   return (
-    <View style={styles.bar}>
+    <View
+      style={[
+        styles.bar,
+        {
+          // Keep the tab bar above Android system navigation/home area.
+          paddingBottom: Math.max(insets.bottom, 10) + 18,
+        },
+      ]}
+    >
       {tabs.map((tab, i) => {
         const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
         const isFocused = state.index === routeIndex;
@@ -127,7 +138,6 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.border,
     paddingHorizontal: 8,
     paddingTop: 8,
-    paddingBottom: 28,
   },
   tabItem: {
     flex: 1,
