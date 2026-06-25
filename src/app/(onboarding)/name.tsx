@@ -1,11 +1,19 @@
-import { View, Text, StyleSheet, Pressable, TextInput, KeyboardAvoidingView, Platform } from "react-native";
-import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
 import { useProfile } from "../../store/profile";
-import { Colors, Radius, Spacing, FontSize } from "../../constants/theme";
 
 export default function NameScreen() {
   const { name, setName } = useProfile();
@@ -28,7 +36,9 @@ export default function NameScreen() {
           <Animated.View entering={FadeInDown.springify()} style={styles.hero}>
             <Text style={styles.emoji}>👋</Text>
             <Text style={styles.heading}>What should we</Text>
-            <Text style={[styles.heading, { color: Colors.primary }]}>call you?</Text>
+            <Text style={[styles.heading, { color: Colors.primary }]}>
+              call you?
+            </Text>
 
             <TextInput
               value={name}
@@ -38,13 +48,17 @@ export default function NameScreen() {
               style={styles.input}
               autoFocus
               returnKeyType="done"
-              onSubmitEditing={() => name.trim() && router.push("/(onboarding)/grade")}
+              onSubmitEditing={() =>
+                name.trim() && router.replace("/(onboarding)/grade")
+              }
             />
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(200).springify()}>
             <Pressable
-              onPress={() => name.trim() && router.push("/(onboarding)/grade")}
+              onPress={() =>
+                name.trim() && router.replace("/(onboarding)/grade")
+              }
               disabled={!name.trim()}
               style={({ pressed }) => [
                 styles.btn,
@@ -95,7 +109,11 @@ const styles = StyleSheet.create({
     gap: 4,
     marginBottom: Spacing.xxl,
   },
-  backText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.mutedText },
+  backText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.mutedText,
+  },
   hero: { flex: 1, gap: Spacing.xs },
   emoji: { fontSize: 56, marginBottom: Spacing.sm },
   heading: {

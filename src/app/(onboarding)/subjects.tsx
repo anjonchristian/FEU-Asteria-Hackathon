@@ -1,13 +1,13 @@
-import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
-import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
-import { useProfile } from "../../store/profile";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { SUBJECTS } from "../../constants/data";
-import { Colors, Radius, Spacing, FontSize } from "../../constants/theme";
+import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
+import { useProfile } from "../../store/profile";
 
 export default function SubjectsScreen() {
   const { subjects, toggleSubject } = useProfile();
@@ -25,10 +25,15 @@ export default function SubjectsScreen() {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
-        <Animated.View entering={FadeInDown.springify()} style={{ marginBottom: Spacing.md }}>
+        <Animated.View
+          entering={FadeInDown.springify()}
+          style={{ marginBottom: Spacing.md }}
+        >
           <Text style={styles.emoji}>✨</Text>
           <Text style={styles.heading}>What do you love</Text>
-          <Text style={[styles.heading, { color: Colors.primary }]}>to learn?</Text>
+          <Text style={[styles.heading, { color: Colors.primary }]}>
+            to learn?
+          </Text>
           <Text style={styles.sub}>Pick as many as you like!</Text>
         </Animated.View>
 
@@ -60,7 +65,12 @@ export default function SubjectsScreen() {
                       <Ionicons name="checkmark" size={11} color="#fff" />
                     </View>
                   )}
-                  <View style={[styles.iconBox, { backgroundColor: active ? item.color : "#DDECD4" }]}>
+                  <View
+                    style={[
+                      styles.iconBox,
+                      { backgroundColor: active ? item.color : "#DDECD4" },
+                    ]}
+                  >
                     <Ionicons
                       name={item.icon as any}
                       size={22}
@@ -76,7 +86,7 @@ export default function SubjectsScreen() {
 
         <Animated.View entering={FadeInDown.delay(500).springify()}>
           <Pressable
-            onPress={() => subjects.length > 0 && router.push("/assessment")}
+            onPress={() => subjects.length > 0 && router.replace("/assessment")}
             disabled={subjects.length === 0}
             style={({ pressed }) => [
               styles.btn,
@@ -108,8 +118,17 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.lg,
   },
-  back: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: Spacing.lg },
-  backText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.mutedText },
+  back: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: Spacing.lg,
+  },
+  backText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.mutedText,
+  },
   emoji: { fontSize: 40, marginBottom: Spacing.xs },
   heading: {
     fontSize: FontSize.xxl,

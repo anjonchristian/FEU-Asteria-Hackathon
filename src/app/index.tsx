@@ -75,7 +75,7 @@ export default function SplashScreen() {
           style={styles.cta}
         >
           <Pressable
-            onPress={() => router.push("/(onboarding)/language")}
+            onPress={() => router.replace("/(onboarding)/language")}
             style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
           >
             <LinearGradient
