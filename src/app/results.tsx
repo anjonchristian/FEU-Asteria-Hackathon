@@ -1,25 +1,54 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { useProfile } from "../store/profile";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown, ZoomIn } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { QUESTIONS } from "../constants/data";
-import { Colors, Radius, Spacing, FontSize } from "../constants/theme";
+import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
+import { useProfile } from "../store/profile";
 
 export default function ResultsScreen() {
+  // 1. Grab your score and whatever your selected subjects variable name is from your store
+  // (Change 'selectedSubjects' below to match the exact key name inside your useProfile store)
   const { score } = useProfile();
 
-  const pct   = Math.round((score / QUESTIONS.length) * 100);
+  const pct = Math.round((score / QUESTIONS.length) * 100);
   const stars = score >= 9 ? 3 : score >= 6 ? 2 : 1;
-  const msg   = score >= 9 ? "Outstanding! 🌟" : score >= 6 ? "Well done! 🎉" : "Keep growing! 💪";
+  const msg =
+    score >= 9
+      ? "Outstanding! 🌟"
+      : score >= 6
+        ? "Well done! 🎉"
+        : "Keep growing! 💪";
+
+  const handleFinishOnboarding = async () => {
+    try {
+      // We only need to manually save the onboarding flag status here
+      await AsyncStorage.setItem("HAS_SEEN_ONBOARDING", "true");
+    } catch {
+      // Fails silently
+    } finally {
+      router.replace("/(tabs)");
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe}>
       {/* Background blobs */}
-      <View style={[styles.blob, { backgroundColor: Colors.yellow, top: -60, right: -60 }]} />
-      <View style={[styles.blob, { backgroundColor: Colors.green, bottom: -40, left: -40 }]} />
+      <View
+        style={[
+          styles.blob,
+          { backgroundColor: Colors.yellow, top: -60, right: -60 },
+        ]}
+      />
+      <View
+        style={[
+          styles.blob,
+          { backgroundColor: Colors.green, bottom: -40, left: -40 },
+        ]}
+      />
 
       <View style={styles.container}>
         <Animated.View entering={ZoomIn.springify()} style={styles.awardWrap}>
@@ -33,17 +62,25 @@ export default function ResultsScreen() {
           </LinearGradient>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(200).springify()} style={styles.textBlock}>
+        <Animated.View
+          entering={FadeInDown.delay(200).springify()}
+          style={styles.textBlock}
+        >
           <Text style={styles.msg}>{msg}</Text>
           <Text style={styles.sub}>
             You got{" "}
-            <Text style={styles.scoreHighlight}>{score} out of {QUESTIONS.length}</Text>
-            {" "}correct
+            <Text style={styles.scoreHighlight}>
+              {score} out of {QUESTIONS.length}
+            </Text>{" "}
+            correct
           </Text>
         </Animated.View>
 
         {/* Stars */}
-        <Animated.View entering={FadeInDown.delay(300).springify()} style={styles.starsRow}>
+        <Animated.View
+          entering={FadeInDown.delay(300).springify()}
+          style={styles.starsRow}
+        >
           {[1, 2, 3].map((s) => (
             <Ionicons
               key={s}
@@ -55,13 +92,19 @@ export default function ResultsScreen() {
         </Animated.View>
 
         {/* Score ring */}
-        <Animated.View entering={ZoomIn.delay(400).springify()} style={styles.ring}>
+        <Animated.View
+          entering={ZoomIn.delay(400).springify()}
+          style={styles.ring}
+        >
           <Text style={styles.ringText}>{pct}%</Text>
         </Animated.View>
 
-        <Animated.View entering={FadeInDown.delay(500).springify()} style={styles.btnWrap}>
+        <Animated.View
+          entering={FadeInDown.delay(500).springify()}
+          style={styles.btnWrap}
+        >
           <Pressable
-            onPress={() => router.replace("/(tabs)")}
+            onPress={handleFinishOnboarding}
             style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
           >
             <LinearGradient
