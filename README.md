@@ -56,6 +56,7 @@ The application tracks correct and incorrect answers locally, creating a persona
 - native
 - wind
 - SQLte
+- react-native-ml-kit/text-recognition
 
 ---
 

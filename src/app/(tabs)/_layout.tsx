@@ -40,7 +40,7 @@ function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         styles.bar,
         {
           // Keep the tab bar above Android system navigation/home area.
-          paddingBottom: Math.max(insets.bottom, 10) + 18,
+          paddingBottom: insets.bottom,
         },
       ]}
     >
