@@ -1,18 +1,18 @@
-import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
-import { router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { useProfile } from "../../store/profile";
+import { router } from "expo-router";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { GRADES } from "../../constants/data";
-import { Colors, Radius, Spacing, FontSize } from "../../constants/theme";
+import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
+import { useProfile } from "../../store/profile";
 
 export default function GradeScreen() {
   const { name, grade, setGrade } = useProfile();
 
   const handleSelect = (g: string) => {
     setGrade(g);
-    router.push("/(onboarding)/subjects");
+    router.replace("/(onboarding)/subjects");
   };
 
   return (
@@ -23,10 +23,15 @@ export default function GradeScreen() {
           <Text style={styles.backText}>Back</Text>
         </Pressable>
 
-        <Animated.View entering={FadeInDown.springify()} style={{ marginBottom: Spacing.lg }}>
+        <Animated.View
+          entering={FadeInDown.springify()}
+          style={{ marginBottom: Spacing.lg }}
+        >
           <Text style={styles.emoji}>🎒</Text>
           <Text style={styles.heading}>Hi {name}!</Text>
-          <Text style={[styles.heading, { color: Colors.primary }]}>What grade are you?</Text>
+          <Text style={[styles.heading, { color: Colors.primary }]}>
+            What grade are you?
+          </Text>
         </Animated.View>
 
         <FlatList
@@ -51,7 +56,9 @@ export default function GradeScreen() {
                     pressed && styles.itemPressed,
                   ]}
                 >
-                  <Text style={[styles.itemText, active && styles.itemTextActive]}>
+                  <Text
+                    style={[styles.itemText, active && styles.itemTextActive]}
+                  >
                     {item}
                   </Text>
                 </Pressable>
@@ -67,8 +74,17 @@ export default function GradeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   container: { flex: 1, paddingHorizontal: Spacing.lg, paddingTop: Spacing.xl },
-  back: { flexDirection: "row", alignItems: "center", gap: 4, marginBottom: Spacing.lg },
-  backText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.mutedText },
+  back: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginBottom: Spacing.lg,
+  },
+  backText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.mutedText,
+  },
   emoji: { fontSize: 40, marginBottom: Spacing.xs },
   heading: {
     fontSize: FontSize.xxl,

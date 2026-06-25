@@ -1,18 +1,18 @@
-import { View, Text, StyleSheet, Pressable, FlatList } from "react-native";
-import { router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { useProfile } from "../../store/profile";
+import { router } from "expo-router";
+import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LANGUAGES } from "../../constants/data";
-import { Colors, Radius, Spacing, FontSize } from "../../constants/theme";
+import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
+import { useProfile } from "../../store/profile";
 
 export default function LanguageScreen() {
   const { language, setLanguage } = useProfile();
 
   const handleSelect = (code: string) => {
     setLanguage(code);
-    router.push("/(onboarding)/name");
+    router.replace("/(onboarding)/name");
   };
 
   return (
@@ -21,7 +21,9 @@ export default function LanguageScreen() {
         <Animated.View entering={FadeInDown.springify()}>
           <Text style={styles.emoji}>🌍</Text>
           <Text style={styles.heading}>Choose your</Text>
-          <Text style={[styles.heading, { color: Colors.primary }]}>language</Text>
+          <Text style={[styles.heading, { color: Colors.primary }]}>
+            language
+          </Text>
         </Animated.View>
 
         <FlatList
@@ -51,7 +53,12 @@ export default function LanguageScreen() {
                     </View>
                   )}
                   <Text style={styles.flag}>{item.flag}</Text>
-                  <Text style={[styles.langLabel, active && { color: Colors.primary }]}>
+                  <Text
+                    style={[
+                      styles.langLabel,
+                      active && { color: Colors.primary },
+                    ]}
+                  >
                     {item.label}
                   </Text>
                 </Pressable>

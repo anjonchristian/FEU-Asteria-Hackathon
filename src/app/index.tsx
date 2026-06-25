@@ -1,12 +1,60 @@
 import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
 
 export default function SplashScreen() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function checkOnboardingStatus() {
+      try {
+        const hasSeenOnboarding = await AsyncStorage.getItem(
+          "HAS_SEEN_ONBOARDING",
+        );
+
+        if (hasSeenOnboarding === "true") {
+          // If they finished onboarding before, send them straight to tabs
+          router.replace("/(tabs)");
+        } else {
+          // New user -> stop loading and show this beautiful splash UI
+          setIsLoading(false);
+        }
+      } catch {
+        // Silently default to showing the splash screen if storage fails
+        setIsLoading(false);
+      }
+    }
+
+    checkOnboardingStatus();
+  }, []);
+
+  // Show a clean loading state while we read from storage
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={[
+          styles.safe,
+          { justifyContent: "center", alignItems: "center" },
+        ]}
+      >
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
@@ -75,7 +123,7 @@ export default function SplashScreen() {
           style={styles.cta}
         >
           <Pressable
-            onPress={() => router.push("/(onboarding)/language")}
+            onPress={() => router.replace("/(onboarding)/language")}
             style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
           >
             <LinearGradient
