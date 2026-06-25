@@ -1,28 +1,48 @@
-import { Tabs } from "expo-router";
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Colors, Radius, FontSize } from "../../constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { Tabs } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Colors, FontSize, Radius } from "../../constants/theme";
 
 // Custom tab bar with elevated OCR button in the center
-function SproutTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const tabs = [
-    { name: "index",    icon: "home-outline",         activeIcon: "home",          label: "Home" },
-    { name: "progress", icon: "trending-up-outline",  activeIcon: "trending-up",   label: "Progress" },
-    { name: "ocr",      icon: "scan-outline",         activeIcon: "scan",          label: "Scan",    isCenter: true },
-    { name: "earn",     icon: "star-outline",         activeIcon: "star",          label: "Earn" },
-    { name: "profile",  icon: "person-outline",       activeIcon: "person",        label: "Profile" },
+    { name: "index", icon: "home-outline", activeIcon: "home", label: "Home" },
+    {
+      name: "progress",
+      icon: "trending-up-outline",
+      activeIcon: "trending-up",
+      label: "Progress",
+    },
+    {
+      name: "ocr",
+      icon: "scan-outline",
+      activeIcon: "scan",
+      label: "Scan",
+      isCenter: true,
+    },
+    { name: "earn", icon: "star-outline", activeIcon: "star", label: "Earn" },
+    {
+      name: "profile",
+      icon: "person-outline",
+      activeIcon: "person",
+      label: "Profile",
+    },
   ];
 
   return (
     <View style={styles.bar}>
       {tabs.map((tab, i) => {
         const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
-        const isFocused  = state.index === routeIndex;
+        const isFocused = state.index === routeIndex;
 
         const onPress = () => {
-          const event = navigation.emit({ type: "tabPress", target: state.routes[routeIndex]?.key, canPreventDefault: true });
+          const event = navigation.emit({
+            type: "tabPress",
+            target: state.routes[routeIndex]?.key,
+            canPreventDefault: true,
+          });
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(tab.name);
           }
@@ -33,7 +53,10 @@ function SproutTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             <View key={tab.name} style={styles.centerWrap}>
               <Pressable
                 onPress={onPress}
-                style={({ pressed }) => [styles.centerBtn, pressed && { opacity: 0.88, transform: [{ scale: 0.96 }] }]}
+                style={({ pressed }) => [
+                  styles.centerBtn,
+                  pressed && { opacity: 0.88, transform: [{ scale: 0.96 }] },
+                ]}
               >
                 <LinearGradient
                   colors={[Colors.primary, Colors.teal]}
@@ -41,10 +64,22 @@ function SproutTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                   end={{ x: 1, y: 1 }}
                   style={styles.centerGradient}
                 >
-                  <Ionicons name={isFocused ? tab.activeIcon as any : tab.icon as any} size={28} color="#fff" />
+                  <Ionicons
+                    name={
+                      isFocused ? (tab.activeIcon as any) : (tab.icon as any)
+                    }
+                    size={28}
+                    color="#fff"
+                  />
                 </LinearGradient>
               </Pressable>
-              <Text style={[styles.tabLabel, isFocused && styles.tabLabelActive, { marginTop: 6 }]}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  isFocused && styles.tabLabelActive,
+                  { marginTop: 6 },
+                ]}
+              >
                 {tab.label}
               </Text>
             </View>
@@ -52,13 +87,9 @@ function SproutTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         }
 
         return (
-          <Pressable
-            key={tab.name}
-            onPress={onPress}
-            style={styles.tabItem}
-          >
+          <Pressable key={tab.name} onPress={onPress} style={styles.tabItem}>
             <Ionicons
-              name={isFocused ? tab.activeIcon as any : tab.icon as any}
+              name={isFocused ? (tab.activeIcon as any) : (tab.icon as any)}
               size={22}
               color={isFocused ? Colors.primary : Colors.mutedText}
             />
@@ -75,7 +106,7 @@ function SproutTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 export default function TabsLayout() {
   return (
     <Tabs
-      tabBar={(props) => <SproutTabBar {...props} />}
+      tabBar={(props: any) => <KahayagTabBar {...props} />}
       screenOptions={{ headerShown: false }}
     >
       <Tabs.Screen name="index" />

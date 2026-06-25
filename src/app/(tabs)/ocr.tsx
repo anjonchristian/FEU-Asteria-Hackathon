@@ -1,19 +1,19 @@
-import { useState, useRef, useEffect } from "react";
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from "react-native";
-import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { CameraView, useCameraPermissions } from "expo-camera";
+import * as Haptics from "expo-haptics";
+import { useEffect, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withTiming,
   Easing,
   FadeIn,
   FadeOut,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
 } from "react-native-reanimated";
-import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { Colors, Radius, Spacing, FontSize } from "../../constants/theme";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
 
 type ScanState = "idle" | "scanning" | "result";
 
@@ -27,7 +27,7 @@ const MOCK_RESULT = {
 export default function OcrScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>("idle");
-  const [result, setResult]       = useState<typeof MOCK_RESULT | null>(null);
+  const [result, setResult] = useState<typeof MOCK_RESULT | null>(null);
 
   // Scan line animation
   const scanY = useSharedValue(0);
@@ -40,7 +40,7 @@ export default function OcrScreen() {
       scanY.value = withRepeat(
         withTiming(280, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
         -1,
-        true
+        true,
       );
     } else {
       scanY.value = 0;
@@ -74,7 +74,7 @@ export default function OcrScreen() {
           <Ionicons name="camera-outline" size={64} color={Colors.teal} />
           <Text style={styles.permissionTitle}>Camera Access Needed</Text>
           <Text style={styles.permissionSub}>
-            Sprout needs your camera to scan text and problems.
+            Kahayag needs your camera to scan text and problems.
           </Text>
           <Pressable onPress={requestPermission} style={styles.permBtn}>
             <Text style={styles.permBtnText}>Allow Camera</Text>
@@ -120,9 +120,15 @@ export default function OcrScreen() {
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <Text style={styles.resultTag}>✓ Text Detected</Text>
                   <Text style={styles.resultDetected}>{result.detected}</Text>
-                  <Text style={styles.resultExplanation}>{result.explanation}</Text>
+                  <Text style={styles.resultExplanation}>
+                    {result.explanation}
+                  </Text>
                   <View style={styles.tipBox}>
-                    <Ionicons name="bulb-outline" size={16} color={Colors.yellow} />
+                    <Ionicons
+                      name="bulb-outline"
+                      size={16}
+                      color={Colors.yellow}
+                    />
                     <Text style={styles.tipText}>{result.tip}</Text>
                   </View>
                 </ScrollView>
@@ -131,9 +137,17 @@ export default function OcrScreen() {
 
             {/* Idle hint */}
             {scanState === "idle" && (
-              <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.idleHint}>
+              <Animated.View
+                entering={FadeIn}
+                exiting={FadeOut}
+                style={styles.idleHint}
+              >
                 <View style={styles.cameraIconBox}>
-                  <Ionicons name="camera-outline" size={32} color={Colors.teal} />
+                  <Ionicons
+                    name="camera-outline"
+                    size={32}
+                    color={Colors.teal}
+                  />
                 </View>
                 <Text style={styles.idleText}>
                   Point at any text, problem, or worksheet
@@ -146,25 +160,36 @@ export default function OcrScreen() {
         {/* Bottom controls */}
         <View style={styles.controls}>
           <Text style={styles.statusText}>
-            {scanState === "idle"    && "Tap the button to start scanning"}
+            {scanState === "idle" && "Tap the button to start scanning"}
             {scanState === "scanning" && "Scanning for text..."}
-            {scanState === "result"  && "Tap scan to try again"}
+            {scanState === "result" && "Tap scan to try again"}
           </Text>
 
           <View style={styles.btnRow}>
             {scanState === "result" ? (
               <Pressable
                 onPress={reset}
-                style={({ pressed }) => [styles.resetBtn, pressed && styles.pressed]}
+                style={({ pressed }) => [
+                  styles.resetBtn,
+                  pressed && styles.pressed,
+                ]}
               >
-                <Ionicons name="refresh-outline" size={22} color={Colors.teal} />
+                <Ionicons
+                  name="refresh-outline"
+                  size={22}
+                  color={Colors.teal}
+                />
                 <Text style={styles.resetText}>Scan Again</Text>
               </Pressable>
             ) : (
               <Pressable
                 onPress={startScan}
                 disabled={scanState === "scanning"}
-                style={({ pressed }) => [styles.scanBtn, pressed && styles.pressed, scanState === "scanning" && styles.scanBtnScanning]}
+                style={({ pressed }) => [
+                  styles.scanBtn,
+                  pressed && styles.pressed,
+                  scanState === "scanning" && styles.scanBtnScanning,
+                ]}
               >
                 <View style={styles.scanBtnInner}>
                   <Ionicons
@@ -196,8 +221,18 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingHorizontal: Spacing.xl,
   },
-  permissionTitle: { fontSize: FontSize.xl, fontWeight: "900", color: "#fff", textAlign: "center" },
-  permissionSub: { fontSize: FontSize.sm, color: "rgba(255,255,255,0.6)", textAlign: "center", lineHeight: 20 },
+  permissionTitle: {
+    fontSize: FontSize.xl,
+    fontWeight: "900",
+    color: "#fff",
+    textAlign: "center",
+  },
+  permissionSub: {
+    fontSize: FontSize.sm,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+    lineHeight: 20,
+  },
   permBtn: {
     backgroundColor: Colors.primary,
     paddingHorizontal: Spacing.xl,
@@ -241,10 +276,34 @@ const styles = StyleSheet.create({
     height: CORNER,
     borderColor: Colors.teal,
   },
-  cornerTL: { top: 12, left: 12, borderTopWidth: CORNER_THICKNESS, borderLeftWidth: CORNER_THICKNESS, borderTopLeftRadius: 8 },
-  cornerTR: { top: 12, right: 12, borderTopWidth: CORNER_THICKNESS, borderRightWidth: CORNER_THICKNESS, borderTopRightRadius: 8 },
-  cornerBL: { bottom: 12, left: 12, borderBottomWidth: CORNER_THICKNESS, borderLeftWidth: CORNER_THICKNESS, borderBottomLeftRadius: 8 },
-  cornerBR: { bottom: 12, right: 12, borderBottomWidth: CORNER_THICKNESS, borderRightWidth: CORNER_THICKNESS, borderBottomRightRadius: 8 },
+  cornerTL: {
+    top: 12,
+    left: 12,
+    borderTopWidth: CORNER_THICKNESS,
+    borderLeftWidth: CORNER_THICKNESS,
+    borderTopLeftRadius: 8,
+  },
+  cornerTR: {
+    top: 12,
+    right: 12,
+    borderTopWidth: CORNER_THICKNESS,
+    borderRightWidth: CORNER_THICKNESS,
+    borderTopRightRadius: 8,
+  },
+  cornerBL: {
+    bottom: 12,
+    left: 12,
+    borderBottomWidth: CORNER_THICKNESS,
+    borderLeftWidth: CORNER_THICKNESS,
+    borderBottomLeftRadius: 8,
+  },
+  cornerBR: {
+    bottom: 12,
+    right: 12,
+    borderBottomWidth: CORNER_THICKNESS,
+    borderRightWidth: CORNER_THICKNESS,
+    borderBottomRightRadius: 8,
+  },
 
   scanLine: {
     position: "absolute",
@@ -262,14 +321,30 @@ const styles = StyleSheet.create({
   },
 
   resultOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(28,56,41,0.96)",
     padding: Spacing.md,
     borderRadius: Radius.xl,
   },
-  resultTag: { fontSize: FontSize.sm, fontWeight: "900", color: Colors.yellow, marginBottom: 8 },
-  resultDetected: { fontSize: FontSize.xl, fontWeight: "900", color: "#fff", marginBottom: 8 },
-  resultExplanation: { fontSize: FontSize.sm, fontWeight: "600", color: "rgba(255,255,255,0.85)", lineHeight: 20, marginBottom: 12 },
+  resultTag: {
+    fontSize: FontSize.sm,
+    fontWeight: "900",
+    color: Colors.yellow,
+    marginBottom: 8,
+  },
+  resultDetected: {
+    fontSize: FontSize.xl,
+    fontWeight: "900",
+    color: "#fff",
+    marginBottom: 8,
+  },
+  resultExplanation: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.85)",
+    lineHeight: 20,
+    marginBottom: 12,
+  },
   tipBox: {
     flexDirection: "row",
     gap: 6,
@@ -278,7 +353,13 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: Radius.md,
   },
-  tipText: { flex: 1, fontSize: FontSize.xs, fontWeight: "700", color: Colors.green, lineHeight: 17 },
+  tipText: {
+    flex: 1,
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.green,
+    lineHeight: 17,
+  },
 
   idleHint: {
     flex: 1,

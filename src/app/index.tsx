@@ -1,22 +1,58 @@
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { router } from "expo-router";
-import { LinearGradient } from "expo-linear-gradient";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
-import { Colors, Radius, Spacing, FontSize } from "../constants/theme";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
 
 export default function SplashScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         {/* Background blobs */}
-        <View style={[styles.blob, { backgroundColor: Colors.green, top: -60, right: -60, width: 220, height: 220 }]} />
-        <View style={[styles.blob, { backgroundColor: Colors.yellow, bottom: 40, left: -40, width: 180, height: 180 }]} />
-        <View style={[styles.blob, { backgroundColor: Colors.teal, top: "40%", left: -30, width: 120, height: 120 }]} />
+        <View
+          style={[
+            styles.blob,
+            {
+              backgroundColor: Colors.green,
+              top: -60,
+              right: -60,
+              width: 220,
+              height: 220,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.blob,
+            {
+              backgroundColor: Colors.yellow,
+              bottom: 40,
+              left: -40,
+              width: 180,
+              height: 180,
+            },
+          ]}
+        />
+        <View
+          style={[
+            styles.blob,
+            {
+              backgroundColor: Colors.teal,
+              top: "40%",
+              left: -30,
+              width: 120,
+              height: 120,
+            },
+          ]}
+        />
 
         {/* Logo + wordmark */}
-        <Animated.View entering={FadeInDown.delay(100).springify()} style={styles.hero}>
+        <Animated.View
+          entering={FadeInDown.delay(100).springify()}
+          style={styles.hero}
+        >
           <LinearGradient
             colors={[Colors.primary, Colors.teal]}
             start={{ x: 0, y: 0 }}
@@ -26,13 +62,18 @@ export default function SplashScreen() {
             <Text style={styles.logoEmoji}>🌱</Text>
           </LinearGradient>
 
-          <Text style={styles.wordmark}>Sprout</Text>
+          <Text style={styles.wordmark}>Kahayag</Text>
           <Text style={styles.tagline}>Learning grows here</Text>
-          <Text style={styles.sub}>Your personal learning companion,{"\n"}growing with you every day.</Text>
+          <Text style={styles.sub}>
+            Your personal learning companion,{"\n"}growing with you every day.
+          </Text>
         </Animated.View>
 
         {/* CTA */}
-        <Animated.View entering={FadeInUp.delay(400).springify()} style={styles.cta}>
+        <Animated.View
+          entering={FadeInUp.delay(400).springify()}
+          style={styles.cta}
+        >
           <Pressable
             onPress={() => router.push("/(onboarding)/language")}
             style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}
