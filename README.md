@@ -1,56 +1,210 @@
-# Welcome to your Expo app 👋
+# 💡 Kahayag
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Lightweight, zero online connectivity mobile learning platform for primary filipino students supports both android and ios
 
-## Get started
+---
 
-1. Install dependencies
+## Project Case: AI-Powered Study Companion for Filipino Learners
 
-   ```bash
-   npm install
-   ```
+Project Kahayag(meaning light/brightness) tackles the core challenge of the Accenture TechSprint by eliminating the digital divide. By running a localized Small Language Model (SLM) directly on consumer hardware via llama.rn and introducing on-device OCR scanning, Kahayag acts as an infinite, smart study guide that requires zero data, zero Wi-Fi, and zero cloud costs.
 
-2. Start the app
+With built in on device OCR for scanning physical textbooks and Bluetooth Low Energy (BLE) for peer-to-peer "Study Jams" or "Study off(competitive)" Kahayag ensures quality educational support is accessible to the majority of filipino students.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## ✨ Core Features
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Local On Device AI Tutor
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Powered by llama.rn a 4-bit quantized SLM runs natively on the phone's CPU. It answers questions, gives hints, and acts as an interactive guide.
 
-## Get a fresh project
+---
 
-When you're ready, run:
+### Textbook Scanning through offline OCR
 
-```bash
-npm run reset-project
+Students can snap photos of physical learning modules or worksheets. The app processes the image and extracts text entirely offline no cloud APIs required.
+
+---
+
+### Support for English and Filipino
+
+The AI seamlessly understands and responds in English, Filipino, and conversational Taglish, removing language barriers for primary school students.
+
+---
+
+### Study Jam Sessions
+
+Students can challenge nearby classmates to head to head educational duels or joint review sessions over Bluetooth Low Energy, gamifying the learning experience which is proven to be an effective motivator especially to young children.
+
+---
+
+### Adaptive and Personalized Mastery Loop
+
+The application tracks correct and incorrect answers locally, creating a personalized learning metric that scales quiz difficulties dynamically based on student progression.
+
+---
+
+## 🛠️ Tech Stack and Dependencies
+
+- llama.rn
+- RN AI OCR text-recognition
+- expo-camera
+- expo-image-manipulator
+- expo-fs
+- expo-status-bar
+- lucide
+- native
+- wind
+- SQLte
+
+---
+
+### Additional Dependencies
+
+- @expo/ui
+- @expo/vector-icons
+- @react-navigation/bottom-tabs
+- expo
+- expo-camera
+- expo-constants
+- expo-device
+- expo-font
+- expo-glass-effect
+- expo-haptics
+- expo-image
+- expo-linear-gradient
+- expo-linking
+- expo-router
+- expo-splash-screen
+- expo-status-bar
+- expo-symbols
+- expo-system-ui
+- expo-web-browser
+- lucide
+- lucide-react-native
+- nativewind
+- react
+- react-dom
+- react-native
+- react-native-gesture-handler
+- react-native-reanimated
+- react-native-safe-area-context
+- react-native-screens
+- react-native-svg
+- react-native-web
+- react-native-worklets
+- tailwindcss
+- zustand
+- to be updated
+
+---
+
+## 🗄️ Database Architecture SQLite(to be eligible for change)
+
+### User Record
+
+```sql
+CREATE TABLE students (
+    _id TEXT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    grade_level INTEGER NOT NULL,
+    current_streak INTEGER DEFAULT 0,
+    highest_streak INTEGER DEFAULT 0,
+    total_xp INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-### Other setup steps
+### Academic Node Infrastructure
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```sql
+CREATE TABLE subjects (
+    _id TEXT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT
+);
 
-## Learn more
+CREATE TABLE topics (
+    _id TEXT PRIMARY KEY,
+    subject_id TEXT,
+    name VARCHAR(255) NOT NULL,
+    grade_level INTEGER NOT NULL,
+    FOREIGN KEY(subject_id) REFERENCES subjects(_id)
+);
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+---
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### AI Adaptive Learning Brain
 
-## Join the community
+```sql
+CREATE TABLE student_topic_mastery (
+    student_id TEXT,
+    topic_id TEXT,
+    mastery_score INTEGER CHECK (mastery_score BETWEEN 0 AND 100),
+    questions_attempted INTEGER DEFAULT 0,
+    last_reviewed_at TIMESTAMP,
+    PRIMARY KEY(student_id, topic_id),
+    FOREIGN KEY(student_id) REFERENCES students(_id),
+    FOREIGN KEY(topic_id) REFERENCES topics(_id)
+);
+```
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Local Generative Question
+
+```sql
+CREATE TABLE session_history (
+    _id TEXT PRIMARY KEY,
+    student_id TEXT,
+    topic_id TEXT,
+    generated_question TEXT NOT NULL,
+    student_answer VARCHAR(255),
+    was_correct INTEGER CHECK (was_correct IN (0, 1)),
+    ai_feedback TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(student_id) REFERENCES students(_id),
+    FOREIGN KEY(topic_id) REFERENCES topics(_id)
+);
+```
+
+---
+
+### BLE Peer Mesh Cache
+
+```sql
+CREATE TABLE bluetooth_peers (
+    _id TEXT PRIMARY KEY,
+    bluetooth_uuid VARCHAR(255) UNIQUE NOT NULL,
+    peer_name VARCHAR(255),
+    last_connected_at TIMESTAMP
+);
+```
+
+---
+
+### Offline Challenge Ledger
+
+```sql
+CREATE TABLE challenges (
+    _id TEXT PRIMARY KEY,
+    challenger_id TEXT,
+    opponent_type VARCHAR(50) CHECK (opponent_type IN ('AI', 'BLUETOOTH')),
+    opponent_id TEXT NULL,
+    topic_id TEXT,
+    challenger_score INTEGER,
+    opponent_score INTEGER NULL,
+    status VARCHAR(50) CHECK (status IN ('COMPLETED', 'PENDING_SYNC')),
+    played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(challenger_id) REFERENCES students(_id),
+    FOREIGN KEY(opponent_id) REFERENCES bluetooth_peers(_id),
+    FOREIGN KEY(topic_id) REFERENCES topics(_id)
+);
+```
+
+---
+
+_Project Kahayag(meaning light/brightness) tackles the core challenge of the Accenture TechSprint by eliminating the digital divide._
