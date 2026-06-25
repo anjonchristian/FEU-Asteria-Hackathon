@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
+import TextRecognition from "@react-native-ml-kit/text-recognition";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as Haptics from "expo-haptics";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, {
   Easing,
@@ -17,17 +18,20 @@ import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
 
 type ScanState = "idle" | "scanning" | "result";
 
-// Simulated OCR result — replace with real ML Kit / AWS Textract integration
-const MOCK_RESULT = {
-  detected: "5 × 8 = ?",
-  explanation: "This is a multiplication problem.\n5 groups of 8 = 40 ✓",
-  tip: "Try: 6 × 8 = ? in your Math module!",
-};
+// We'll update this type to handle our dynamic OCR result
+interface OcrResult {
+  detected: string;
+  explanation: string;
+  tip: string;
+}
 
 export default function OcrScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanState, setScanState] = useState<ScanState>("idle");
-  const [result, setResult] = useState<typeof MOCK_RESULT | null>(null);
+  const [result, setResult] = useState<OcrResult | null>(null);
+
+  // Ref to access the camera's takePictureAsync method
+  const cameraRef = useRef<CameraView>(null);
 
   // Scan line animation
   const scanY = useSharedValue(0);
@@ -48,16 +52,50 @@ export default function OcrScreen() {
   }, [scanState]);
 
   const startScan = async () => {
+    if (!cameraRef.current) return;
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setScanState("scanning");
     setResult(null);
 
-    // Simulate network / ML processing delay
-    setTimeout(() => {
+    try {
+      // 1. Capture the photo
+      console.log("📸 Snapping photo...");
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.8, // Slightly lower quality for faster processing
+        skipProcessing: true,
+      });
+
+      if (!photo) throw new Error("Failed to take photo");
+      console.log("✅ Photo saved at:", photo.uri);
+
+      // 2. Pass it to ML Kit for Text Recognition
+      console.log("🔍 Running ML Kit OCR...");
+      const ocrResult = await TextRecognition.recognize(photo.uri);
+
+      // 3. Log the results as requested!
+      console.log("--- OCR TEXT RESULT ---");
+      console.log(ocrResult.text);
+      console.log("-----------------------");
+
+      // If you want to see the bounding boxes and blocks, uncomment this:
+      // console.log(JSON.stringify(ocrResult.blocks, null, 2));
+
+      // 4. Update the UI
       setScanState("result");
-      setResult(MOCK_RESULT);
+      setResult({
+        detected: ocrResult.text.trim() || "No text detected",
+        explanation: "Raw ML Kit OCR Output",
+        tip: "Check your terminal to see the full console.log details!",
+      });
+
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 2800);
+    } catch (error) {
+      console.error("🚨 OCR Error:", error);
+      setScanState("idle");
+      setResult(null);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   };
 
   const reset = () => {
@@ -86,8 +124,12 @@ export default function OcrScreen() {
 
   return (
     <View style={styles.safe}>
-      {/* Camera background */}
-      <CameraView style={StyleSheet.absoluteFill} facing="back" />
+      {/* Camera background - ADDED REF HERE */}
+      <CameraView
+        ref={cameraRef}
+        style={StyleSheet.absoluteFill}
+        facing="back"
+      />
 
       {/* Dark overlay outside frame */}
       <View style={styles.overlay}>
