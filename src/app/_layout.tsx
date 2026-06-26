@@ -20,7 +20,11 @@ export default function RootLayout() {
           <Stack.Screen name="assessment" />
           <Stack.Screen name="results" />
           <Stack.Screen name="(tabs)" options={{ animation: "fade" }} />
-          <Stack.Screen name="study-session" options={{ animation: "slide_from_bottom" }} />
+          <Stack.Screen
+            name="study-session"
+            options={{ animation: "slide_from_bottom" }}
+          />
+          <Stack.Screen name="study-jam" options={{ animation: "slide_from_right" }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
