@@ -11,17 +11,24 @@ const DIRECT_ANSWER_PATTERNS = [
   /kaya\s+ang\s+sagot\s+(ay|diyan)\s/i,
   /ang\s+resulta\s+(ay|diyan)\s/i,
   /tamang\s+sagot\s+(ay|diyan)\s/i,
+  /ang\s+final\s+answer\s+(ay|is)\s/i,
+  /so\s+ang\s+sagot\s+(ay|is)\s/i,
+  /yun\s+ang\s+tama/i,
+  /ito\s+ang\s+sagot/i,
   /dapat\s+ay\s+\d+/i,
   /exactly\s+ang\s+sagot/i,
 
   // English patterns
   /the\s+(correct\s+)?answer\s+is\s/i,
   /the\s+solution\s+is\s/i,
+  /the\s+final\s+answer\s+is\s/i,
   /it\s+equals\s+\d+/i,
   /the\s+result\s+is\s+\d+/i,
   /therefore\s+the\s+answer/i,
   /we\s+can\s+conclude\s+that/i,
   /in\s+conclusion/i,
+  /so\s+the\s+answer\s+is\s/i,
+  /this\s+means\s+that\s+the\s+answer\s+is\s/i,
 
   // Mathematical giveaways
   /=\s*\d+\s*$/m,
@@ -48,6 +55,181 @@ export interface GuardrailResult {
   triggeredPattern?: string;
 }
 
+export function isStudentDemandingAnswer(message: string): boolean {
+  return STUDENT_DEMAND_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+function extractLessonKeywords(textbookContext: string): string[] {
+  const stopwords = new Set([
+    "the",
+    "and",
+    "for",
+    "with",
+    "from",
+    "that",
+    "this",
+    "your",
+    "you",
+    "are",
+    "was",
+    "were",
+    "will",
+    "have",
+    "has",
+    "had",
+    "through",
+    "into",
+    "their",
+    "there",
+    "text",
+    "textbook",
+    "page",
+    "study",
+    "lesson",
+    "cycle",
+  ]);
+
+  const tokens =
+    textbookContext
+      .toLowerCase()
+      .match(/[a-z]+/g)
+      ?.filter((token) => token.length >= 4 && !stopwords.has(token)) ?? [];
+
+  return [...new Set(tokens)].slice(0, 12);
+}
+
+export function shouldUseOffTopicResponse(
+  studentMessage: string,
+  recentMessages: string[],
+  textbookContext: string,
+): boolean {
+  if (!isOffTopic(studentMessage)) {
+    return false;
+  }
+
+  const windowText = [studentMessage, ...recentMessages]
+    .join(" ")
+    .toLowerCase();
+  const lessonKeywords = extractLessonKeywords(textbookContext);
+
+  if (lessonKeywords.length === 0) {
+    return true;
+  }
+
+  const hasLessonContinuity = lessonKeywords.some((keyword) =>
+    windowText.includes(keyword),
+  );
+
+  return !hasLessonContinuity;
+}
+
+function isStudentShowingUnderstanding(studentMessage: string): boolean {
+  const lower = studentMessage.toLowerCase();
+
+  const confidenceSignals = [
+    /\btama\b/i,
+    /\bcorrect\b/i,
+    /\byes\b/i,
+    /\boo\b/i,
+    /\bokay\b/i,
+    /\bgets\s*ko\b/i,
+    /\bi\s+get\s+it\b/i,
+    /\bgot\s+it\b/i,
+    /\bnaintindihan\s*ko\b/i,
+    /\bnaiintindihan\s*ko\b/i,
+    /\bayun\b/i,
+  ];
+
+  const answerSignals = [
+    /evapor/i,
+    /condens/i,
+    /precipitat/i,
+    /water\s+vapor/i,
+    /sumisingaw/i,
+    /nagiging\s+vapor/i,
+    /nagiging\s+ulap/i,
+    /bumabalik\s+sa\s+clouds?/i,
+    /bumabagsak/i,
+    /umuulan/i,
+    /rain/i,
+    /snow/i,
+    /hail/i,
+  ];
+
+  return (
+    confidenceSignals.some((pattern) => pattern.test(lower)) ||
+    answerSignals.some((pattern) => pattern.test(lower))
+  );
+}
+
+export function shouldUseMasteryResponse(
+  studentMessage: string,
+  recentMessages: string[],
+  textbookContext: string,
+): boolean {
+  const windowText = [studentMessage, ...recentMessages]
+    .join(" ")
+    .toLowerCase();
+  const lessonKeywords = extractLessonKeywords(textbookContext);
+
+  if (lessonKeywords.length === 0) {
+    return false;
+  }
+
+  const isAboutLesson = lessonKeywords.some((keyword) =>
+    windowText.includes(keyword),
+  );
+
+  return isAboutLesson && isStudentShowingUnderstanding(studentMessage);
+}
+
+function getTextbookCue(textbookContext: string): string {
+  const lower = textbookContext.toLowerCase();
+
+  if (lower.includes("evaporation")) {
+    return "Balikan natin ang bahagi tungkol sa evaporation";
+  }
+  if (lower.includes("condensation")) {
+    return "Balikan natin ang bahagi tungkol sa condensation";
+  }
+  if (lower.includes("precipitation")) {
+    return "Balikan natin ang bahagi tungkol sa precipitation";
+  }
+  if (lower.includes("water cycle")) {
+    return "Balikan natin ang bahagi tungkol sa water cycle";
+  }
+
+  return textbookContext
+    ? "Balikan natin ang text at hanapin ang clue sa unang pangungusap"
+    : "Balikan natin ang text at hanapin ang clue sa tanong";
+}
+
+export function getMasteryTransitionResponse(textbookContext: string): string {
+  const lower = textbookContext.toLowerCase();
+
+  if (
+    lower.includes("evaporation") &&
+    lower.includes("condensation") &&
+    lower.includes("precipitation")
+  ) {
+    return "Magaling, tama ka — mukhang nakuha mo na ang buong water cycle! 😊 Ano pa ang hindi mo pa gaanong sure: evaporation, condensation, o precipitation?";
+  }
+
+  if (lower.includes("evaporation")) {
+    return "Magaling, tama ka — nakuha mo na ang idea tungkol sa evaporation! 😊 Ano pa ang gusto mong linawin mula sa text?";
+  }
+
+  if (lower.includes("condensation")) {
+    return "Magaling, tama ka — nakuha mo na ang idea tungkol sa condensation! ☁️ Ano pa ang hindi mo pa ganap na sure?";
+  }
+
+  if (lower.includes("precipitation")) {
+    return "Magaling, tama ka — nakuha mo na ang idea tungkol sa precipitation! 🌧️ May iba ka pa bang bahaging gusto mong balikan?";
+  }
+
+  return "Magaling, tama ka — mukhang nakuha mo na ang lesson! 😊 Ano pa ang hindi mo pa ganap na sure?";
+}
+
 /**
  * Check if the AI response contains a direct answer.
  * If so, rewrite it as a Socratic redirect.
@@ -57,13 +239,15 @@ export function applySocraticGuardrail(
   studentMessage: string,
   textbookContext: string,
 ): GuardrailResult {
+  const trimmed = aiResponse.trim();
+
   // Check for direct answer patterns
   for (const pattern of DIRECT_ANSWER_PATTERNS) {
-    if (pattern.test(aiResponse)) {
+    if (pattern.test(trimmed)) {
       console.warn(`[Guardrail] Direct answer detected! Pattern: ${pattern}`);
       return {
         passed: false,
-        originalText: aiResponse,
+        originalText: trimmed,
         filteredText: generateSocraticRedirect(studentMessage, textbookContext),
         triggeredPattern: pattern.toString(),
       };
@@ -72,12 +256,11 @@ export function applySocraticGuardrail(
 
   // Check if response is suspiciously short and contains a number
   // (often means the AI just output the answer)
-  const trimmed = aiResponse.trim();
   if (trimmed.length < 10 && /\d+/.test(trimmed)) {
     console.warn("[Guardrail] Suspicious short numeric response detected");
     return {
       passed: false,
-      originalText: aiResponse,
+      originalText: trimmed,
       filteredText: generateSocraticRedirect(studentMessage, textbookContext),
       triggeredPattern: "short_numeric_response",
     };
@@ -86,8 +269,8 @@ export function applySocraticGuardrail(
   // Response passed all checks
   return {
     passed: true,
-    originalText: aiResponse,
-    filteredText: aiResponse,
+    originalText: trimmed,
+    filteredText: trimmed,
   };
 }
 
@@ -100,20 +283,20 @@ function generateSocraticRedirect(
   textbookContext: string,
 ): string {
   // Check if student was demanding an answer
-  const wasDemanding = STUDENT_DEMAND_PATTERNS.some((p) =>
-    p.test(studentMessage),
-  );
+  const wasDemanding = isStudentDemandingAnswer(studentMessage);
 
   if (wasDemanding) {
-    return "Alam kong gusto mo nang malaman ang sagot, pero mas matututo ka kapag ikaw mismo ang naka-discover nito! Subukan natin: ano sa palagay mo ang unang hakbang na dapat gawin? Kaya mo iyan, kaibigan! 😊";
+    return `Alam kong gusto mo nang malaman ang sagot, pero mas matututo ka kapag ikaw mismo ang naka-discover nito! ${getTextbookCue(textbookContext)}. Ano sa palagay mo ang unang clue na makikita mo? Kaya mo iyan, kaibigan! 😊`;
   }
+
+  const topicHint = getTextbookCue(textbookContext);
 
   // Default Socratic redirects (rotate for variety)
   const redirects = [
-    "Hindi ko puwedeng ibigay ang direktang sagot, pero tutulungan kitang mahanap ito! Tingnan nating mabuti ang problema. Ano sa palagay mo ang ibig sabihin ng unang bahagi?",
-    "Subukan nating pag-isipan ito nang magkasama. Ano ang mga importanteng detalye na nakikita mo sa tanong? Doon tayo magsimula!",
-    "Alam mo, ang pinakamagandang paraan para matuto ay ang ikaw mismo ang tumuklas ng sagot. Handa ka na bang subukan? Ano ang una mong naiisip kapag binasa mo ang tanong?",
-    "Bago natin makuha ang sagot, balikan muna natin ang basics. May nakikita ka bang clue sa tanong kung anong operation ang dapat gamitin?",
+    `Hindi ko puwedeng ibigay ang direktang sagot, pero tutulungan kitang mahanap ito! ${topicHint} Ano sa palagay mo ang ibig sabihin ng unang bahagi?`,
+    `Subukan nating pag-isipan ito nang magkasama. ${topicHint} Ano ang importanteng detail na napansin mo?`,
+    `Ang pinakamagandang paraan para matuto ay ikaw mismo ang tumuklas ng sagot. ${topicHint} Ano ang una mong naiisip kapag binasa mo ulit?`,
+    `Bago natin makuha ang sagot, balikan muna natin ang basics. ${topicHint} May clue ka bang nakita na puwedeng gabayan tayo?`,
   ];
 
   const randomIndex = Math.floor(Math.random() * redirects.length);
@@ -147,4 +330,11 @@ export function isOffTopic(message: string): boolean {
  */
 export function getOffTopicResponse(): string {
   return "Tumutok muna tayo sa ating leksyon ngayon, kaibigan! 😊 Mayroon akong inihandang tanong mula sa iyong na-scan na babasahin. Handa ka na bang sagutin ito?";
+}
+
+export function getSocraticRedirectResponse(
+  studentMessage: string,
+  textbookContext: string,
+): string {
+  return generateSocraticRedirect(studentMessage, textbookContext);
 }
