@@ -1,8 +1,17 @@
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import * as Haptics from "expo-haptics";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import {
+  FlatList,
+  Pressable,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SUBJECTS } from "../../constants/data";
@@ -11,10 +20,33 @@ import { useProfile } from "../../store/profile";
 
 export default function SubjectsScreen() {
   const { subjects, toggleSubject } = useProfile();
+  const [allSelected, setAllSelected] = useState(false);
 
   const handleToggle = (id: string) => {
     Haptics.selectionAsync();
     toggleSubject(id);
+  };
+  const handleSelectAll = () => {
+    Haptics.selectionAsync();
+
+    if (allSelected) {
+      // Unselect all — call toggleSubject for each currently selected subject
+      SUBJECTS.forEach((subject) => {
+        // Only toggle if it's currently selected (to avoid double-toggling)
+        if (subjects.includes(subject.id)) {
+          toggleSubject(subject.id);
+        }
+      });
+      setAllSelected(false);
+    } else {
+      // Select all — call toggleSubject for each unselected subject
+      SUBJECTS.forEach((subject) => {
+        if (!subjects.includes(subject.id)) {
+          toggleSubject(subject.id);
+        }
+      });
+      setAllSelected(true);
+    }
   };
 
   return (
@@ -30,11 +62,30 @@ export default function SubjectsScreen() {
           style={{ marginBottom: Spacing.md }}
         >
           <Text style={styles.emoji}>✨</Text>
-          <Text style={styles.heading}>What do you love</Text>
+          <Text style={styles.heading}>Select your</Text>
           <Text style={[styles.heading, { color: Colors.primary }]}>
-            to learn?
+            subjects!
           </Text>
-          <Text style={styles.sub}>Pick as many as you like!</Text>
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Text style={styles.sub}>Pick as many as you like!</Text>
+            <TouchableOpacity onPress={handleSelectAll}>
+              {!allSelected ? (
+                <MaterialCommunityIcons
+                  name="select-all"
+                  size={30}
+                  color="gray"
+                />
+              ) : (
+                <MaterialIcons name="deselect" size={30} color="gray" />
+              )}
+            </TouchableOpacity>
+          </View>
         </Animated.View>
 
         <FlatList

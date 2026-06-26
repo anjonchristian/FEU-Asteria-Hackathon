@@ -57,7 +57,7 @@ export default function NameScreen() {
           <Animated.View entering={FadeInDown.delay(200).springify()}>
             <Pressable
               onPress={() =>
-                name.trim() && router.replace("/(onboarding)/grade")
+                name.trim() && router.navigate("/(onboarding)/grade")
               }
               disabled={!name.trim()}
               style={({ pressed }) => [

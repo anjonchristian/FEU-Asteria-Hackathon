@@ -12,7 +12,7 @@ export default function GradeScreen() {
 
   const handleSelect = (g: string) => {
     setGrade(g);
-    router.replace("/(onboarding)/subjects");
+    router.navigate("/(onboarding)/subjects");
   };
 
   return (

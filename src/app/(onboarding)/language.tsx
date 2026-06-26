@@ -12,7 +12,7 @@ export default function LanguageScreen() {
 
   const handleSelect = (code: string) => {
     setLanguage(code);
-    router.replace("/(onboarding)/name");
+    router.navigate("/(onboarding)/name");
   };
 
   return (
