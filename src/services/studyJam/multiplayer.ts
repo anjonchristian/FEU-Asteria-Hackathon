@@ -19,7 +19,7 @@ export async function startHostServer(
   const joinCode = ip.split(".").pop();
 
   server = TcpSocket.createServer((socket) => {
-    connectedClients.push(socket);
+    connectedClients.replace(socket);
 
     socket.on("data", (data) => {
       const message = JSON.parse(data.toString());

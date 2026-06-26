@@ -60,7 +60,7 @@ function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
         const onPress = () => {
           if (isStudyJam) {
-            router.push("/study-jam" as any);
+            router.replace("/study-jam" as any);
             return;
           }
 

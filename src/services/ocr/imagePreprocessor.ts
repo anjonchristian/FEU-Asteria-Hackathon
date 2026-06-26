@@ -10,7 +10,9 @@ import type { OcrProcessingOptions } from "./types";
 const DEFAULT_MAX_WIDTH = 1600;
 const DEFAULT_COMPRESS = 0.82;
 
-async function getImageSize(uri: string): Promise<{ width: number; height: number }> {
+async function getImageSize(
+  uri: string,
+): Promise<{ width: number; height: number }> {
   return new Promise((resolve, reject) => {
     Image.getSize(
       uri,
@@ -38,7 +40,7 @@ export async function preprocessImageForOcr(
   const actions: Action[] = [];
 
   if (width > maxWidth) {
-    actions.push({ resize: { width: maxWidth } });
+    actions.replace({ resize: { width: maxWidth } });
   }
 
   const result = await manipulateAsync(uri, actions, {

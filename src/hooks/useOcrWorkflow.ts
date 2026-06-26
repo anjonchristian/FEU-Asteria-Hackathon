@@ -1,8 +1,8 @@
+import type { CameraView } from "expo-camera";
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
-import type { CameraView } from "expo-camera";
-import { useCallback, useMemo, useState, type RefObject } from "react";
 import { router } from "expo-router";
+import { useCallback, useMemo, useState, type RefObject } from "react";
 
 import { getOcrErrorMessage } from "../constants/ocrStrings";
 import {
@@ -20,9 +20,8 @@ export function useOcrWorkflow() {
   const setScanContext = useOcrContextStore((s) => s.setScanContext);
 
   const [scanState, setScanState] = useState<OcrScanState>("idle");
-  const [pipelineResult, setPipelineResult] = useState<OcrPipelineResult | null>(
-    null,
-  );
+  const [pipelineResult, setPipelineResult] =
+    useState<OcrPipelineResult | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [savedForStudy, setSavedForStudy] = useState(false);
 
@@ -66,15 +65,15 @@ export function useOcrWorkflow() {
         const result = await runOcrPipeline(uri, source, profileContext);
         setPipelineResult(result);
         setScanState("result");
-        
+
         // Automatically save to scan context
         setScanContext(result.result, result.llmContext);
         setSavedForStudy(true);
-        
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
+
         // Automatically navigate to dedicated study session screen
-        router.push("/study-session" as any);
+        router.replace("/study-session" as any);
       } catch (error) {
         handleOcrError(error);
       }

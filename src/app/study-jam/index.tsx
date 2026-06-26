@@ -2,7 +2,14 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  Alert,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import RadarAnimation from "../../components/study-jam/RadarAnimation";
@@ -21,7 +28,7 @@ export default function StudyJamScreen() {
 
   const handleHost = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.push("/study-jam/host" as any);
+    router.replace("/study-jam/host" as any);
   };
 
   const handleFind = () => {
@@ -31,7 +38,7 @@ export default function StudyJamScreen() {
 
   const handleRadarComplete = useCallback(() => {
     setShowRadar(false);
-    router.push("/study-jam/find" as any);
+    router.replace("/study-jam/find" as any);
   }, []);
 
   const handleClearHistory = () => {
@@ -71,7 +78,11 @@ export default function StudyJamScreen() {
                 pressed && styles.pressed,
               ]}
             >
-              <Ionicons name="settings-outline" size={20} color={Colors.forest} />
+              <Ionicons
+                name="settings-outline"
+                size={20}
+                color={Colors.forest}
+              />
             </Pressable>
           ) : null}
         </View>
