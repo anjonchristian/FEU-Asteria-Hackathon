@@ -1,93 +1,32 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Pressable,
-  TextInput,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useEffect, useRef, useState } from "react";
+import {
+    ActivityIndicator,
+    Alert,
+    KeyboardAvoidingView,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
-import {
-  checkModelExists,
-  downloadModel,
-  cancelDownload,
-} from "../services/tutor/modelManager";
-import { saveStudySession } from "../services/tutor/historyService";
 import { useLocalTutor } from "../hooks/useLocalTutor";
+import { saveStudySession } from "../services/tutor/historyService";
 
 export default function StudySessionScreen() {
-  const [modelReady, setModelReady] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadError, setDownloadError] = useState<string | null>(null);
-
   const [inputVal, setInputVal] = useState("");
   const [showRefText, setShowRefText] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Check model state on mount
-  useEffect(() => {
-    let active = true;
+  const { messages, isInitializing, isThinking, sendMessage, referenceText } =
+    useLocalTutor();
 
-    async function checkModel() {
-      const exists = await checkModelExists();
-      if (active) {
-        if (exists) {
-          setModelReady(true);
-        } else {
-          // Trigger download automatically
-          handleDownload();
-        }
-      }
-    }
-
-    checkModel();
-
-    return () => {
-      active = false;
-      cancelDownload();
-    };
-  }, []);
-
-  const handleDownload = async () => {
-    setIsDownloading(true);
-    setDownloadError(null);
-    try {
-      await downloadModel((progress) => {
-        setDownloadProgress(progress);
-      });
-      setModelReady(true);
-    } catch (err: any) {
-      console.error("[StudySession] Download error:", err);
-      setDownloadError(
-        "Hindi ma-download ang AI Tutor model. Siguraduhing may internet connection ka para sa unang pag-load."
-      );
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  // Connect local LLM tutor hook
-  const {
-    messages,
-    isInitializing,
-    isThinking,
-    isMockMode,
-    sendMessage,
-    referenceText,
-  } = useLocalTutor();
-
-  // Scroll to bottom on new messages
   useEffect(() => {
     if (messages.length > 0) {
       setTimeout(() => {
@@ -116,76 +55,22 @@ export default function StudySessionScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              // Serialize and save the chat history
               if (messages.length > 0) {
                 await saveStudySession(referenceText, messages);
               }
             } catch (err) {
               console.error("[StudySession] Error saving history:", err);
             } finally {
-              // Back to main screen. Unmount unloads weights.
               router.replace("/(tabs)");
             }
           },
         },
-      ]
+      ],
     );
   };
 
-  // Render model downloader progress view
-  if (!modelReady) {
-    const percent = Math.round(downloadProgress * 100);
-    return (
-      <SafeAreaView style={styles.downloadSafe}>
-        <View style={styles.downloadContainer}>
-          <View style={styles.downloadCard}>
-            <Text style={styles.tutorEmoji}>🌱</Text>
-            <Text style={styles.downloadTitle}>Inihahanda ang AI Tutor...</Text>
-            <Text style={styles.downloadSub}>
-              Idina-download ang isip ng AI para magamit offline. Isang beses lang ito gagawin!
-            </Text>
-
-            {downloadError ? (
-              <View style={styles.errorContainer}>
-                <Ionicons name="alert-circle-outline" size={32} color="#D32F2F" />
-                <Text style={styles.errorText}>{downloadError}</Text>
-                <Pressable onPress={handleDownload} style={styles.retryBtn}>
-                  <Text style={styles.retryText}>Subukan Ulit</Text>
-                </Pressable>
-              </View>
-            ) : (
-              <View style={styles.progressWrap}>
-                <View style={styles.progressBarBg}>
-                  <View
-                    style={[styles.progressBarFill, { width: `${percent}%` }]}
-                  />
-                </View>
-                <Text style={styles.progressPct}>{percent}%</Text>
-              </View>
-            )}
-
-            <Text style={styles.tipsText}>
-              💡 Tip: Huwag isara ang app habang nag-a-update para hindi maantala ang iyong AI Tutor.
-            </Text>
-
-            <Pressable
-              onPress={() => {
-                cancelDownload();
-                router.back();
-              }}
-              style={styles.cancelBtn}
-            >
-              <Text style={styles.cancelBtnText}>Bumalik</Text>
-            </Pressable>
-          </View>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.safe}>
-      {/* Header */}
       <View style={styles.header}>
         <Pressable onPress={handleExitSession} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
@@ -199,7 +84,13 @@ export default function StudySessionScreen() {
         </Pressable>
       </View>
 
-      {/* Scanned Reference Text Card */}
+      <View style={styles.infoBar}>
+        <Text style={styles.infoText}>
+          Mock water cycle tutor lang ito. I-scan muna ang water cycle page,
+          tapos mag-chat ka sa AI tutor.
+        </Text>
+      </View>
+
       {referenceText ? (
         <View style={styles.refCardWrap}>
           <Pressable
@@ -212,7 +103,9 @@ export default function StudySessionScreen() {
               color={Colors.primary}
             />
             <Text style={styles.refHeaderText}>
-              {showRefText ? "Itago ang Binabasang Teksto 📖" : "Tignan ang Binabasang Teksto 📖"}
+              {showRefText
+                ? "Itago ang Binabasang Teksto 📖"
+                : "Tignan ang Binabasang Teksto 📖"}
             </Text>
             <Ionicons
               name={showRefText ? "chevron-up" : "chevron-down"}
@@ -226,18 +119,23 @@ export default function StudySessionScreen() {
             </ScrollView>
           )}
         </View>
-      ) : null}
+      ) : (
+        <View style={styles.refEmptyCard}>
+          <Ionicons name="scan-outline" size={18} color={Colors.primary} />
+          <Text style={styles.refEmptyText}>
+            Wala pang OCR text. Mag-scan ng water cycle page para magsimula ang
+            mock tutor.
+          </Text>
+        </View>
+      )}
 
-      {/* Main Chat Interface */}
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         {isInitializing ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loaderText}>Inihahanda ang isip ng AI... 🧠</Text>
-            {isMockMode && <Text style={styles.modeIndicator}>Mock Fallback Enabled</Text>}
+            <Text style={styles.loaderText}>
+              Inihahanda ang mock tutor... 🧠
+            </Text>
           </View>
         ) : (
           <ScrollView
@@ -270,7 +168,12 @@ export default function StudySessionScreen() {
                     {isAi && (
                       <Text style={styles.teacherName}>Teacher Kahayag</Text>
                     )}
-                    <Text style={[styles.messageText, isAi ? styles.textAi : styles.textUser]}>
+                    <Text
+                      style={[
+                        styles.messageText,
+                        isAi ? styles.textAi : styles.textUser,
+                      ]}
+                    >
                       {msg.content}
                     </Text>
                   </View>
@@ -283,11 +186,23 @@ export default function StudySessionScreen() {
                 <View style={styles.avatarBox}>
                   <Text style={styles.avatarText}>🧠</Text>
                 </View>
-                <View style={[styles.bubble, styles.bubbleAi, styles.thinkingBubble]}>
+                <View
+                  style={[
+                    styles.bubble,
+                    styles.bubbleAi,
+                    styles.thinkingBubble,
+                  ]}
+                >
                   <Text style={styles.teacherName}>Teacher Kahayag</Text>
                   <View style={styles.thinkingRow}>
-                    <ActivityIndicator size="small" color={Colors.primary} style={{ marginRight: 6 }} />
-                    <Text style={styles.thinkingText}>Nag-iisip si Teacher...</Text>
+                    <ActivityIndicator
+                      size="small"
+                      color={Colors.primary}
+                      style={{ marginRight: 6 }}
+                    />
+                    <Text style={styles.thinkingText}>
+                      Nag-iisip si Teacher...
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -295,7 +210,6 @@ export default function StudySessionScreen() {
           </ScrollView>
         )}
 
-        {/* Text Input Footer */}
         <View style={styles.footer}>
           <TextInput
             style={styles.input}
@@ -365,8 +279,19 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs + 1,
     fontWeight: "800",
   },
-
-  // Reference Scanned text styles
+  infoBar: {
+    backgroundColor: "rgba(40,148,127,0.08)",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+  },
+  infoText: {
+    color: Colors.forest,
+    fontSize: FontSize.xs + 1,
+    lineHeight: 18,
+    fontWeight: "700",
+  },
   refCardWrap: {
     backgroundColor: "#fff",
     borderBottomWidth: 1,
@@ -400,8 +325,23 @@ const styles = StyleSheet.create({
     padding: Spacing.sm,
     borderRadius: Radius.sm,
   },
-
-  // Chat window styles
+  refEmptyCard: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  refEmptyText: {
+    flex: 1,
+    color: Colors.mutedText,
+    fontSize: FontSize.xs + 1,
+    lineHeight: 18,
+    fontWeight: "700",
+  },
   chatScroll: { flex: 1 },
   chatContent: { padding: Spacing.md, gap: Spacing.md },
   messageRow: { flexDirection: "row", gap: Spacing.sm, maxWidth: "80%" },
@@ -446,7 +386,6 @@ const styles = StyleSheet.create({
   messageText: { fontSize: FontSize.sm + 1, lineHeight: 22 },
   textAi: { color: Colors.forest, fontWeight: "500" },
   textUser: { color: "#fff", fontWeight: "700" },
-
   loaderContainer: {
     flex: 1,
     alignItems: "center",
@@ -458,17 +397,6 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: Colors.mutedText,
   },
-  modeIndicator: {
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-    color: Colors.yellow,
-    backgroundColor: Colors.forest,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: Radius.full,
-    marginTop: 4,
-  },
-
   thinkingBubble: { opacity: 0.95 },
   thinkingRow: { flexDirection: "row", alignItems: "center" },
   thinkingText: {
@@ -477,8 +405,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     fontWeight: "700",
   },
-
-  // Text Input bar styles
   footer: {
     flexDirection: "row",
     alignItems: "center",
@@ -493,7 +419,6 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 8,
     maxHeight: 100,
     fontSize: FontSize.md,
     color: Colors.forest,
@@ -511,99 +436,4 @@ const styles = StyleSheet.create({
   },
   pressed: { opacity: 0.8, transform: [{ scale: 0.95 }] },
   disabled: { backgroundColor: "rgba(40,148,127,0.3)" },
-
-  // Download view styles
-  downloadSafe: { flex: 1, backgroundColor: Colors.background },
-  downloadContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: Spacing.xl,
-  },
-  downloadCard: {
-    backgroundColor: "#fff",
-    padding: Spacing.xl,
-    borderRadius: Radius.xl,
-    alignItems: "center",
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    elevation: 8,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    width: "100%",
-  },
-  tutorEmoji: { fontSize: 64, marginBottom: Spacing.sm },
-  downloadTitle: {
-    fontSize: FontSize.xl,
-    fontWeight: "900",
-    color: Colors.forest,
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  downloadSub: {
-    fontSize: FontSize.sm,
-    color: Colors.mutedText,
-    textAlign: "center",
-    lineHeight: 20,
-    marginBottom: Spacing.lg,
-  },
-  progressWrap: { width: "100%", alignItems: "center", gap: 8, marginBottom: Spacing.md },
-  progressBarBg: {
-    width: "100%",
-    height: 12,
-    backgroundColor: Colors.muted,
-    borderRadius: Radius.full,
-    overflow: "hidden",
-  },
-  progressBarFill: {
-    height: "100%",
-    backgroundColor: Colors.primary,
-    borderRadius: Radius.full,
-  },
-  progressPct: { fontSize: FontSize.md, fontWeight: "900", color: Colors.primary },
-  tipsText: {
-    fontSize: FontSize.xs,
-    color: Colors.mutedText,
-    textAlign: "center",
-    lineHeight: 16,
-    fontStyle: "italic",
-    marginBottom: Spacing.lg,
-  },
-  cancelBtn: {
-    paddingVertical: 10,
-    width: "100%",
-    alignItems: "center",
-  },
-  cancelBtnText: {
-    color: Colors.mutedText,
-    fontWeight: "700",
-    fontSize: FontSize.sm,
-  },
-  errorContainer: {
-    width: "100%",
-    alignItems: "center",
-    marginVertical: Spacing.md,
-    gap: 8,
-  },
-  errorText: {
-    fontSize: FontSize.xs + 1,
-    color: "#D32F2F",
-    textAlign: "center",
-    lineHeight: 18,
-    fontWeight: "700",
-  },
-  retryBtn: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 10,
-    borderRadius: Radius.md,
-    marginTop: 8,
-  },
-  retryText: {
-    color: "#fff",
-    fontWeight: "800",
-    fontSize: FontSize.sm,
-  },
 });

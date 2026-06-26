@@ -153,6 +153,7 @@ export function useOcrWorkflow() {
     errorMessage,
     savedForStudy,
     captureFromCamera,
+    processImage,
     pickFromGallery,
     saveForStudy,
     reset,
