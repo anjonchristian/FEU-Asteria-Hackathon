@@ -1,25 +1,24 @@
-import React, { useState, useCallback } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
+  Modal,
   Pressable,
   ScrollView,
-  Modal,
-  FlatList,
+  StyleSheet,
+  Text,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
 
-import { useProfile } from "../../store/profile";
-import { Colors, FontSize, Spacing, Radius } from "../../constants/theme";
+import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
 import {
-  getStudySessions,
   clearStudyHistory,
+  getStudySessions,
   type ChatSession,
 } from "../../services/tutor/historyService";
+import { useProfile } from "../../store/profile";
 
 export default function ProfileScreen() {
   const { name, grade, score, reset } = useProfile();
@@ -45,28 +44,40 @@ export default function ProfileScreen() {
   );
 
   const handleReset = () => {
-    AlertConfirm("Start Over?", "Sigurado ka ba na gusto mong simulan muli ang lahat ng leksyon at burahin ang history?", async () => {
-      reset();
-      await clearStudyHistory();
-      setSessions([]);
-      router.replace("/");
-    });
+    AlertConfirm(
+      "Start Over?",
+      "Are you sure you wanted to reset your account?",
+      async () => {
+        reset();
+        await clearStudyHistory();
+        setSessions([]);
+        router.replace("/");
+      },
+    );
   };
 
   const handleClearHistory = () => {
-    AlertConfirm("Bura Study History?", "Sigurado ka ba na gusto mong burahin ang lahat ng iyong naka-save na study sessions?", async () => {
-      await clearStudyHistory();
-      setSessions([]);
-    });
+    AlertConfirm(
+      "Bura Study History?",
+      "Sigurado ka ba na gusto mong burahin ang lahat ng iyong naka-save na study sessions?",
+      async () => {
+        await clearStudyHistory();
+        setSessions([]);
+      },
+    );
   };
 
   // Safe helper to trigger standard Alert without native import errors
-  const AlertConfirm = (title: string, message: string, onConfirm: () => void) => {
+  const AlertConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+  ) => {
     // We can use standard react-native Alert
     const { Alert } = require("react-native");
     Alert.alert(title, message, [
-      { text: "Bumalik", style: "cancel" },
-      { text: "Burahin", style: "destructive", onPress: onConfirm },
+      { text: "Return", style: "cancel" },
+      { text: "Reset", style: "destructive", onPress: onConfirm },
     ]);
   };
 
@@ -121,8 +132,12 @@ export default function ProfileScreen() {
         <View style={styles.historySection}>
           <View style={styles.sectionHeader}>
             <View style={styles.headerLeft}>
-              <Ionicons name="journal-outline" size={20} color={Colors.forest} />
-              <Text style={styles.sectionTitle}>Naka-save na mga Aralin 📚</Text>
+              <Ionicons
+                name="journal-outline"
+                size={20}
+                color={Colors.forest}
+              />
+              <Text style={styles.sectionTitle}>Saved Studies 📚</Text>
             </View>
             {sessions.length > 0 && (
               <Pressable onPress={handleClearHistory} style={styles.clearBtn}>
@@ -133,10 +148,16 @@ export default function ProfileScreen() {
 
           {sessions.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Ionicons name="book-outline" size={48} color={Colors.mutedText} style={{ opacity: 0.5 }} />
-              <Text style={styles.emptyTitle}>Wala pang naka-save na aralin</Text>
+              <Ionicons
+                name="book-outline"
+                size={48}
+                color={Colors.mutedText}
+                style={{ opacity: 0.5 }}
+              />
+              <Text style={styles.emptyTitle}>No saved studies yet.</Text>
               <Text style={styles.emptySub}>
-                Mag-scan ng libro o worksheet gamit ang Scan tab para simulan ang pakikipag-chat sa iyong AI Tutor! 📖
+                Scan a book or worksheet using a scan tab to chat with Teacher
+                Kahayag! 📖
               </Text>
             </View>
           ) : (
@@ -162,13 +183,19 @@ export default function ProfileScreen() {
                         {item.title}
                       </Text>
                     </View>
-                    <Text style={styles.cardDate}>{formatDate(item.timestamp)}</Text>
+                    <Text style={styles.cardDate}>
+                      {formatDate(item.timestamp)}
+                    </Text>
                   </View>
                   <Text style={styles.cardSnippet} numberOfLines={2}>
                     {item.scannedText}
                   </Text>
                   <View style={styles.cardFooter}>
-                    <Ionicons name="chatbubbles-outline" size={14} color={Colors.mutedText} />
+                    <Ionicons
+                      name="chatbubbles-outline"
+                      size={14}
+                      color={Colors.mutedText}
+                    />
                     <Text style={styles.msgCount}>
                       {item.messages.length} messages
                     </Text>
@@ -182,10 +209,13 @@ export default function ProfileScreen() {
         {/* Start Over Button */}
         <Pressable
           onPress={handleReset}
-          style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.8 }]}
+          style={({ pressed }) => [
+            styles.resetBtn,
+            pressed && { opacity: 0.8 },
+          ]}
         >
           <Ionicons name="refresh-outline" size={18} color={Colors.mutedText} />
-          <Text style={styles.resetText}>Simulan Muli (Reset Account)</Text>
+          <Text style={styles.resetText}>Reset Account</Text>
         </Pressable>
       </ScrollView>
 
@@ -221,7 +251,9 @@ export default function ProfileScreen() {
               </View>
 
               {/* Chat Transcript Panel */}
-              <Text style={styles.transcriptTitle}>Usapan Ninyo ni Teacher Kahayag 💬</Text>
+              <Text style={styles.transcriptTitle}>
+                Usapan Ninyo ni Teacher Kahayag 💬
+              </Text>
 
               <View style={styles.transcriptList}>
                 {selectedSession.messages.map((msg) => {
@@ -246,7 +278,9 @@ export default function ProfileScreen() {
                         ]}
                       >
                         {isAi && (
-                          <Text style={styles.teacherName}>Teacher Kahayag</Text>
+                          <Text style={styles.teacherName}>
+                            Teacher Kahayag
+                          </Text>
                         )}
                         <Text
                           style={[
@@ -298,7 +332,12 @@ const styles = StyleSheet.create({
   },
   avatarEmoji: { fontSize: 44 },
   name: { fontSize: FontSize.xl, fontWeight: "900", color: Colors.forest },
-  grade: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.mutedText, marginTop: -4 },
+  grade: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.mutedText,
+    marginTop: -4,
+  },
   statsRow: {
     flexDirection: "row",
     gap: Spacing.sm,
@@ -311,8 +350,16 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   statBox: { flex: 1, alignItems: "center", gap: 2 },
-  statValue: { fontSize: FontSize.md + 1, fontWeight: "900", color: Colors.primary },
-  statLabel: { fontSize: FontSize.xs - 1, fontWeight: "700", color: Colors.mutedText },
+  statValue: {
+    fontSize: FontSize.md + 1,
+    fontWeight: "900",
+    color: Colors.primary,
+  },
+  statLabel: {
+    fontSize: FontSize.xs - 1,
+    fontWeight: "700",
+    color: Colors.mutedText,
+  },
 
   // History styles
   historySection: {
@@ -433,7 +480,11 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xl,
     paddingVertical: 12,
   },
-  resetText: { fontSize: FontSize.sm, fontWeight: "700", color: Colors.mutedText },
+  resetText: {
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+    color: Colors.mutedText,
+  },
   pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
 
   // Modal styles
