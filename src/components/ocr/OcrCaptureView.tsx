@@ -1,7 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { useEffect, type RefObject } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import Animated, {
   Easing,
   FadeIn,
@@ -11,7 +18,10 @@ import Animated, {
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 import { getOcrStrings } from "../../constants/ocrStrings";
 import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
@@ -45,6 +55,7 @@ export function OcrCaptureView({
   const { language } = useProfile();
   const strings = getOcrStrings(language);
   const [permission, requestPermission] = useCameraPermissions();
+  const insets = useSafeAreaInsets();
 
   const scanY = useSharedValue(0);
   const scanStyle = useAnimatedStyle(() => ({
@@ -85,17 +96,19 @@ export function OcrCaptureView({
   const showError = scanState === "error" && errorMessage;
 
   return (
-    <View style={styles.safe}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing="back" />
+    <SafeAreaView style={styles.safe}>
+      <CameraView
+        ref={cameraRef}
+        style={StyleSheet.absoluteFill}
+        facing="back"
+      />
 
       <View style={styles.overlay}>
-        <SafeAreaView>
-          <View style={styles.header}>
-            <View style={styles.headerSpacer} />
-            <Text style={styles.headerTitle}>{strings.screenTitle}</Text>
-            <View style={styles.headerSpacer} />
-          </View>
-        </SafeAreaView>
+        <View style={styles.header}>
+          <View style={styles.headerSpacer} />
+          <Text style={styles.headerTitle}>{strings.screenTitle}</Text>
+          <View style={styles.headerSpacer} />
+        </View>
 
         <View style={styles.viewfinderArea}>
           <View style={styles.viewfinder}>
@@ -104,15 +117,17 @@ export function OcrCaptureView({
             <View style={[styles.corner, styles.cornerBL]} />
             <View style={[styles.corner, styles.cornerBR]} />
 
-            {isBusy && (
-              <Animated.View style={[styles.scanLine, scanStyle]} />
-            )}
+            {isBusy && <Animated.View style={[styles.scanLine, scanStyle]} />}
 
             {isBusy && (
               <Animated.View entering={FadeIn} style={styles.processingOverlay}>
                 <ActivityIndicator size="large" color={Colors.yellow} />
-                <Text style={styles.processingTitle}>{strings.loadingTitle}</Text>
-                <Text style={styles.processingSub}>{strings.loadingSubtitle}</Text>
+                <Text style={styles.processingTitle}>
+                  {strings.loadingTitle}
+                </Text>
+                <Text style={styles.processingSub}>
+                  {strings.loadingSubtitle}
+                </Text>
               </Animated.View>
             )}
 
@@ -160,7 +175,11 @@ export function OcrCaptureView({
 
             {showError && (
               <Animated.View entering={FadeIn} style={styles.errorOverlay}>
-                <Ionicons name="alert-circle-outline" size={40} color={Colors.yellow} />
+                <Ionicons
+                  name="alert-circle-outline"
+                  size={40}
+                  color={Colors.yellow}
+                />
                 <Text style={styles.errorTitle}>
                   {language === "fil" ? "Oops!" : "Oops!"}
                 </Text>
@@ -176,7 +195,11 @@ export function OcrCaptureView({
                 style={styles.idleHint}
               >
                 <View style={styles.cameraIconBox}>
-                  <Ionicons name="camera-outline" size={32} color={Colors.teal} />
+                  <Ionicons
+                    name="camera-outline"
+                    size={32}
+                    color={Colors.teal}
+                  />
                 </View>
                 <Text style={styles.idleText}>{strings.idleHint}</Text>
                 <Text style={styles.idleTip}>{strings.tipGoodLight}</Text>
@@ -185,7 +208,12 @@ export function OcrCaptureView({
           </View>
         </View>
 
-        <View style={styles.controls}>
+        <View
+          style={[
+            styles.controls,
+            { paddingBottom: Math.max(insets.bottom + 12, 32) },
+          ]}
+        >
           <Text style={styles.statusText}>
             {scanState === "idle" && strings.statusIdle}
             {scanState === "processing" && strings.statusProcessing}
@@ -202,7 +230,11 @@ export function OcrCaptureView({
                   pressed && styles.pressed,
                 ]}
               >
-                <Ionicons name="refresh-outline" size={22} color={Colors.teal} />
+                <Ionicons
+                  name="refresh-outline"
+                  size={22}
+                  color={Colors.teal}
+                />
                 <Text style={styles.resetText}>{strings.scanAgain}</Text>
               </Pressable>
             ) : (
@@ -216,8 +248,14 @@ export function OcrCaptureView({
                     isBusy && styles.disabled,
                   ]}
                 >
-                  <Ionicons name="images-outline" size={22} color={Colors.teal} />
-                  <Text style={styles.galleryText}>{strings.galleryButton}</Text>
+                  <Ionicons
+                    name="images-outline"
+                    size={22}
+                    color={Colors.teal}
+                  />
+                  <Text style={styles.galleryText}>
+                    {strings.galleryButton}
+                  </Text>
                 </Pressable>
 
                 <Pressable
@@ -242,7 +280,7 @@ export function OcrCaptureView({
           </View>
         </View>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
