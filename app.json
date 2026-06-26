@@ -41,7 +41,7 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Kahayag to access your camera",
+          "cameraPermission": "Allow Kahayag to access your camera to scan textbook pages.",
           "microphonePermission": "Allow Kahayag to access your microphone",
           "recordAudioAndroid": true,
           "barcodeScannerEnabled": true
@@ -55,6 +55,13 @@
           "bluetoothAlwaysPermission": "Allow Kahayag to connect to nearby classmates for educational duels."
         }
       ]
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Kahayag to access your photos to scan textbook pages.",
+          "cameraPermission": "Allow Kahayag to access your camera to scan textbook pages."
+        }
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true,
