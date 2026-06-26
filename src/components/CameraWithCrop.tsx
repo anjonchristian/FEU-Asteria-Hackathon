@@ -3,19 +3,19 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Animated,
-    Image,
-    PanResponder,
-    Pressable,
-    StyleSheet,
-    Text,
-    View,
-    useWindowDimensions,
+  ActivityIndicator,
+  Animated,
+  Image,
+  PanResponder,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
 } from "react-native";
 import {
-    SafeAreaView,
-    useSafeAreaInsets,
+  SafeAreaView,
+  useSafeAreaInsets,
 } from "react-native-safe-area-context";
 
 import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
@@ -50,8 +50,8 @@ type ImageFrame = {
   scale: number;
 };
 
-const GUIDE_RATIO = 0.75;
-const GUIDE_WIDTH_RATIO = 0.85;
+const GUIDE_RATIO = 0.68;
+const GUIDE_WIDTH_RATIO = 0.9;
 const MIN_CROP_SIZE_PX = 100;
 const BRACKET_SIZE = 30;
 const BRACKET_THICKNESS = 3;
@@ -78,24 +78,25 @@ export default function CameraWithCrop({
   const insets = useSafeAreaInsets();
 
   const cameraGuide = useMemo(() => {
+    // Vertical bounds: top bar ~80px below safe area top, dock ~120px above safe area bottom
+    const topReserve = insets.top + 80;
+    const bottomReserve = insets.bottom + 170;
     const availableHeight = Math.max(
       0,
-      screenHeight - insets.top - insets.bottom,
+      screenHeight - topReserve - bottomReserve,
     );
+
     const maxWidthFromScreen = screenWidth * GUIDE_WIDTH_RATIO;
-    const maxWidthFromHeight = Math.max(
-      0,
-      (availableHeight - 80) * GUIDE_RATIO,
-    );
+    const maxWidthFromHeight = availableHeight * GUIDE_RATIO;
     const guideWidth = Math.min(maxWidthFromScreen, maxWidthFromHeight);
     const guideHeight = guideWidth / GUIDE_RATIO;
     const guideLeft = (screenWidth - guideWidth) / 2;
-    const guideTop =
-      insets.top + Math.max(0, (availableHeight - guideHeight) / 2);
+    // Center in the available zone, then nudge slightly upward
+    const guideTop = topReserve + (availableHeight - guideHeight) / 2 - 16;
 
     return {
       left: guideLeft,
-      top: guideTop,
+      top: Math.max(topReserve, guideTop),
       width: guideWidth,
       height: guideHeight,
     };
@@ -134,15 +135,25 @@ export default function CameraWithCrop({
   useEffect(() => {
     if (!capturedImage || !imageFrame) return;
 
-    // A proper edge detector, for example a simplified Canny pass or OpenCV-based
-    // rectangle finder, can replace this centered seed crop later.
-    const initialWidth = Math.min(
-      imageFrame.width * 0.8,
-      imageFrame.height * 0.8 * GUIDE_RATIO,
+    // safeBottom in imageFrame-local coords: stop before the footer buttons
+    const footerTopInScreen = screenHeight - (insets.bottom + 170);
+    const safeBottom = Math.min(
+      imageFrame.height,
+      footerTopInScreen - imageFrame.y,
     );
-    const initialHeight = initialWidth / GUIDE_RATIO;
+
+    // Top reserve: clear the crop header (~140px from screen top)
+    const headerBottomInScreen = insets.top + 140;
+    const safeTop = Math.max(0, headerBottomInScreen - imageFrame.y);
+
+    const usableHeight = Math.max(100, safeBottom - safeTop);
+    const initialWidth = Math.min(
+      imageFrame.width * 0.82,
+      usableHeight * GUIDE_RATIO,
+    );
+    const initialHeight = Math.min(initialWidth / GUIDE_RATIO, usableHeight);
     const left = (imageFrame.width - initialWidth) / 2;
-    const top = (imageFrame.height - initialHeight) / 2;
+    const top = safeTop + (usableHeight - initialHeight) / 2;
 
     setCropRect({
       x: left,
@@ -150,12 +161,20 @@ export default function CameraWithCrop({
       width: initialWidth,
       height: initialHeight,
     });
-  }, [capturedImage, imageFrame]);
+  }, [capturedImage, imageFrame, insets.bottom, insets.top, screenHeight]);
 
   const cropRectRef = useRef<CropRect | null>(null);
   useEffect(() => {
     cropRectRef.current = cropRect;
   }, [cropRect]);
+
+  // Footer buttons sit at insets.bottom + ~100px from screen bottom.
+  // Convert that screen-space limit into imageFrame-local Y coordinate.
+  const maxCropBottom = useMemo(() => {
+    if (!imageFrame) return 0;
+    const footerTopInScreenSpace = screenHeight - (insets.bottom + 170);
+    return footerTopInScreenSpace - imageFrame.y;
+  }, [imageFrame, insets.bottom, screenHeight]);
 
   const buildResponder = (handle: HandleName) =>
     PanResponder.create({
@@ -171,6 +190,7 @@ export default function CameraWithCrop({
         if (!current) return;
 
         const minSize = Math.max(MIN_CROP_SIZE_PX * imageFrame.scale, 48);
+        const safeBottom = Math.min(imageFrame.height, maxCropBottom);
 
         const left = current.x;
         const top = current.y;
@@ -201,7 +221,7 @@ export default function CameraWithCrop({
           nextBottom = clamp(
             bottom + gestureState.dy,
             top + minSize,
-            imageFrame.height,
+            safeBottom,
           );
         }
 
@@ -214,7 +234,7 @@ export default function CameraWithCrop({
           nextBottom = clamp(
             bottom + gestureState.dy,
             top + minSize,
-            imageFrame.height,
+            safeBottom,
           );
         }
 
@@ -240,7 +260,7 @@ export default function CameraWithCrop({
       bottomLeft: buildResponder("bottomLeft"),
       bottomRight: buildResponder("bottomRight"),
     }),
-    [imageFrame],
+    [imageFrame, maxCropBottom],
   );
 
   if (!permission) {
@@ -448,7 +468,9 @@ export default function CameraWithCrop({
                 <View style={[styles.bracketArm, styles.armBRV]} />
               </View>
 
-              <View style={styles.cameraHintWrap}>
+              <View
+                style={[styles.cameraHintWrap, { bottom: insets.bottom + 130 }]}
+              >
                 <Text style={styles.cameraHint}>
                   I-pwesto ang libro sa loob ng guide
                 </Text>
@@ -476,7 +498,13 @@ export default function CameraWithCrop({
         </SafeAreaView>
 
         {phase === "camera" ? (
-          <View style={styles.captureDock} pointerEvents="box-none">
+          <View
+            style={[
+              styles.captureDock,
+              { bottom: Math.max(insets.bottom + 16, 32) },
+            ]}
+            pointerEvents="box-none"
+          >
             <Pressable
               onPress={handleCapture}
               disabled={!isCameraReady || isCapturing}
@@ -576,7 +604,10 @@ export default function CameraWithCrop({
               />
             </View>
 
-            <View style={styles.cropHeader} pointerEvents="box-none">
+            <View
+              style={[styles.cropHeader, { top: insets.top + 10 }]}
+              pointerEvents="box-none"
+            >
               <View style={styles.cropHeaderRow}>
                 <View style={styles.offlineBadge}>
                   <Ionicons
@@ -587,7 +618,11 @@ export default function CameraWithCrop({
                   <Text style={styles.offlineText}>Offline</Text>
                 </View>
                 <Pressable onPress={onCancel} style={styles.cancelButton}>
-                  <Ionicons name="close-circle-outline" size={20} color="#fff" />
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={20}
+                    color="#fff"
+                  />
                   <Text style={styles.cancelText}>Lumabas</Text>
                 </Pressable>
               </View>
@@ -597,7 +632,13 @@ export default function CameraWithCrop({
               </Text>
             </View>
 
-            <View style={styles.cropFooter} pointerEvents="box-none">
+            <View
+              style={[
+                styles.cropFooter,
+                { bottom: Math.max(insets.bottom + 16, 32) },
+              ]}
+              pointerEvents="box-none"
+            >
               <Pressable
                 onPress={handleRetake}
                 style={({ pressed }) => [
@@ -807,7 +848,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: Spacing.lg,
     right: Spacing.lg,
-    bottom: 96,
     alignItems: "center",
   },
   cameraHint: {
@@ -825,7 +865,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: Math.max(24, Spacing.lg),
     alignItems: "center",
   },
   captureButton: {
@@ -854,6 +893,7 @@ const styles = StyleSheet.create({
   },
   captureHint: {
     marginTop: 10,
+    marginBottom: -20,
     color: "rgba(255,255,255,0.9)",
     fontSize: FontSize.sm,
     fontWeight: "700",
@@ -941,7 +981,6 @@ const styles = StyleSheet.create({
   },
   cropHeader: {
     position: "absolute",
-    top: 10,
     left: Spacing.md,
     right: Spacing.md,
     alignItems: "center",
@@ -970,7 +1009,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: Math.max(20, Spacing.lg),
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
