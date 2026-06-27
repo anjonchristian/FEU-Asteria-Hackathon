@@ -22,7 +22,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
-
 import { getOcrStrings } from "../../constants/ocrStrings";
 import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
 import type { OcrScanState } from "../../hooks/useOcrWorkflow";
@@ -35,9 +34,11 @@ interface OcrCaptureViewProps {
   pipelineResult: OcrPipelineResult | null;
   errorMessage: string | null;
   savedForStudy: boolean;
+  isGeneratingQuiz: boolean;
   onCapture: () => void;
   onPickGallery: () => void;
   onSaveForStudy: () => void;
+  onGenerateQuiz: () => void;
   onReset: () => void;
 }
 
@@ -47,9 +48,11 @@ export function OcrCaptureView({
   pipelineResult,
   errorMessage,
   savedForStudy,
+  isGeneratingQuiz,
   onCapture,
   onPickGallery,
   onSaveForStudy,
+  onGenerateQuiz,
   onReset,
 }: OcrCaptureViewProps) {
   const { language } = useProfile();
@@ -102,7 +105,6 @@ export function OcrCaptureView({
         style={StyleSheet.absoluteFill}
         facing="back"
       />
-
       <View style={styles.overlay}>
         <View style={styles.header}>
           <View style={styles.headerSpacer} />
@@ -119,7 +121,25 @@ export function OcrCaptureView({
 
             {isBusy && <Animated.View style={[styles.scanLine, scanStyle]} />}
 
-            {isBusy && (
+            {/* Dedicated SLM Generation Overlay */}
+            {isGeneratingQuiz && (
+              <Animated.View
+                entering={FadeIn}
+                exiting={FadeOut}
+                style={styles.generatingOverlay}
+              >
+                <ActivityIndicator size="large" color={Colors.teal} />
+                <Text style={styles.generatingTitle}>
+                  Crafting your quiz...
+                </Text>
+                <Text style={styles.generatingSub}>
+                  Teacher Kahayag is analyzing the text to create your
+                  flashcards.
+                </Text>
+              </Animated.View>
+            )}
+
+            {isBusy && !isGeneratingQuiz && (
               <Animated.View entering={FadeIn} style={styles.processingOverlay}>
                 <ActivityIndicator size="large" color={Colors.yellow} />
                 <Text style={styles.processingTitle}>
@@ -131,7 +151,7 @@ export function OcrCaptureView({
               </Animated.View>
             )}
 
-            {showResult && (
+            {showResult && !isGeneratingQuiz && (
               <Animated.View entering={FadeIn} style={styles.resultOverlay}>
                 <ScrollView showsVerticalScrollIndicator={false}>
                   <Text style={styles.resultTag}>{strings.resultTag}</Text>
@@ -139,41 +159,60 @@ export function OcrCaptureView({
                     {pipelineResult.result.cleanedText}
                   </Text>
                   <Text style={styles.resultMeta}>
-                    {pipelineResult.result.lineCount} lines ·{" "}
+                    {pipelineResult.result.lineCount} lines •{" "}
                     {pipelineResult.result.blockCount} blocks
                   </Text>
-                  {savedForStudy ? (
-                    <View style={styles.savedBadge}>
-                      <Ionicons
-                        name="checkmark-circle"
-                        size={16}
-                        color={Colors.yellow}
-                      />
-                      <Text style={styles.savedText}>
-                        {language === "fil"
-                          ? "Naka-save na para sa AI tutor!"
-                          : "Saved for the AI tutor!"}
-                      </Text>
-                    </View>
-                  ) : (
+
+                  <View style={styles.actionGroup}>
+                    {savedForStudy ? (
+                      <View style={styles.savedBadge}>
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={16}
+                          color={Colors.yellow}
+                        />
+                        <Text style={styles.savedText}>
+                          {language === "fil"
+                            ? "Naka-save na para sa AI tutor!"
+                            : "Saved for the AI tutor!"}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={onSaveForStudy}
+                        style={({ pressed }) => [
+                          styles.studyBtn,
+                          pressed && styles.pressed,
+                        ]}
+                      >
+                        <Ionicons
+                          name="chatbubbles-outline"
+                          size={18}
+                          color="#fff"
+                        />
+                        <Text style={styles.studyBtnText}>Chat with Tutor</Text>
+                      </Pressable>
+                    )}
+
                     <Pressable
-                      onPress={onSaveForStudy}
+                      onPress={onGenerateQuiz}
                       style={({ pressed }) => [
                         styles.studyBtn,
+                        { backgroundColor: Colors.teal },
                         pressed && styles.pressed,
                       ]}
                     >
-                      <Ionicons name="book-outline" size={18} color="#fff" />
+                      <Ionicons name="albums-outline" size={18} color="#fff" />
                       <Text style={styles.studyBtnText}>
-                        {strings.useForStudy}
+                        Generate Quiz Deck
                       </Text>
                     </Pressable>
-                  )}
+                  </View>
                 </ScrollView>
               </Animated.View>
             )}
 
-            {showError && (
+            {showError && !isGeneratingQuiz && (
               <Animated.View entering={FadeIn} style={styles.errorOverlay}>
                 <Ionicons
                   name="alert-circle-outline"
@@ -188,7 +227,7 @@ export function OcrCaptureView({
               </Animated.View>
             )}
 
-            {scanState === "idle" && (
+            {scanState === "idle" && !isGeneratingQuiz && (
               <Animated.View
                 entering={FadeIn}
                 exiting={FadeOut}
@@ -208,77 +247,77 @@ export function OcrCaptureView({
           </View>
         </View>
 
-        <View
-          style={[
-            styles.controls,
-            { paddingBottom: Math.max(insets.bottom + 12, 32) },
-          ]}
-        >
-          <Text style={styles.statusText}>
-            {scanState === "idle" && strings.statusIdle}
-            {scanState === "processing" && strings.statusProcessing}
-            {scanState === "result" && strings.statusResult}
-            {scanState === "error" && strings.tipGoodLight}
-          </Text>
-
-          <View style={styles.btnRow}>
-            {scanState === "result" || scanState === "error" ? (
-              <Pressable
-                onPress={onReset}
-                style={({ pressed }) => [
-                  styles.resetBtn,
-                  pressed && styles.pressed,
-                ]}
-              >
-                <Ionicons
-                  name="refresh-outline"
-                  size={22}
-                  color={Colors.teal}
-                />
-                <Text style={styles.resetText}>{strings.scanAgain}</Text>
-              </Pressable>
-            ) : (
-              <>
+        {!isGeneratingQuiz && (
+          <View
+            style={[
+              styles.controls,
+              { paddingBottom: Math.max(insets.bottom + 12, 32) },
+            ]}
+          >
+            <Text style={styles.statusText}>
+              {scanState === "idle" && strings.statusIdle}
+              {scanState === "processing" && strings.statusProcessing}
+              {scanState === "result" && strings.statusResult}
+              {scanState === "error" && strings.tipGoodLight}
+            </Text>
+            <View style={styles.btnRow}>
+              {scanState === "result" || scanState === "error" ? (
                 <Pressable
-                  onPress={onPickGallery}
-                  disabled={isBusy}
+                  onPress={onReset}
                   style={({ pressed }) => [
-                    styles.galleryBtn,
+                    styles.resetBtn,
                     pressed && styles.pressed,
-                    isBusy && styles.disabled,
                   ]}
                 >
                   <Ionicons
-                    name="images-outline"
+                    name="refresh-outline"
                     size={22}
                     color={Colors.teal}
                   />
-                  <Text style={styles.galleryText}>
-                    {strings.galleryButton}
-                  </Text>
+                  <Text style={styles.resetText}>{strings.scanAgain}</Text>
                 </Pressable>
-
-                <Pressable
-                  onPress={onCapture}
-                  disabled={isBusy}
-                  style={({ pressed }) => [
-                    styles.scanBtn,
-                    pressed && styles.pressed,
-                    isBusy && styles.scanBtnScanning,
-                  ]}
-                >
-                  <View style={styles.scanBtnInner}>
+              ) : (
+                <>
+                  <Pressable
+                    onPress={onPickGallery}
+                    disabled={isBusy}
+                    style={({ pressed }) => [
+                      styles.galleryBtn,
+                      pressed && styles.pressed,
+                      isBusy && styles.disabled,
+                    ]}
+                  >
                     <Ionicons
-                      name={isBusy ? "scan-outline" : "camera"}
-                      size={30}
-                      color="#fff"
+                      name="images-outline"
+                      size={22}
+                      color={Colors.teal}
                     />
-                  </View>
-                </Pressable>
-              </>
-            )}
+                    <Text style={styles.galleryText}>
+                      {strings.galleryButton}
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={onCapture}
+                    disabled={isBusy}
+                    style={({ pressed }) => [
+                      styles.scanBtn,
+                      pressed && styles.pressed,
+                      isBusy && styles.scanBtnScanning,
+                    ]}
+                  >
+                    <View style={styles.scanBtnInner}>
+                      <Ionicons
+                        name={isBusy ? "scan-outline" : "camera"}
+                        size={30}
+                        color="#fff"
+                      />
+                    </View>
+                  </Pressable>
+                </>
+              )}
+            </View>
           </View>
-        </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -290,7 +329,6 @@ const CORNER_THICKNESS = 3;
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#0C1F16" },
-
   permissionContainer: {
     flex: 1,
     alignItems: "center",
@@ -318,7 +356,6 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   permBtnText: { color: "#fff", fontWeight: "800", fontSize: FontSize.md },
-
   overlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.55)",
@@ -333,7 +370,6 @@ const styles = StyleSheet.create({
   },
   headerTitle: { color: "#fff", fontWeight: "900", fontSize: FontSize.md },
   headerSpacer: { width: 40 },
-
   viewfinderArea: {
     flex: 1,
     alignItems: "center",
@@ -346,7 +382,6 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     backgroundColor: "rgba(15,42,30,0.4)",
   },
-
   corner: {
     position: "absolute",
     width: CORNER,
@@ -381,7 +416,6 @@ const styles = StyleSheet.create({
     borderRightWidth: CORNER_THICKNESS,
     borderBottomRightRadius: 8,
   },
-
   scanLine: {
     position: "absolute",
     top: 16,
@@ -396,7 +430,29 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-
+  generatingOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(12, 31, 22, 0.98)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.xl,
+    zIndex: 10,
+  },
+  generatingTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: "#fff",
+    marginTop: Spacing.md,
+    textAlign: "center",
+  },
+  generatingSub: {
+    fontSize: FontSize.sm,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.7)",
+    textAlign: "center",
+    marginTop: Spacing.sm,
+    lineHeight: 20,
+  },
   processingOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(28,56,41,0.92)",
@@ -417,7 +473,6 @@ const styles = StyleSheet.create({
     color: "rgba(255,255,255,0.7)",
     textAlign: "center",
   },
-
   resultOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(28,56,41,0.96)",
@@ -442,6 +497,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "rgba(255,255,255,0.5)",
     marginBottom: Spacing.md,
+  },
+  actionGroup: {
+    marginTop: Spacing.md,
+    gap: Spacing.sm,
   },
   studyBtn: {
     flexDirection: "row",
@@ -471,7 +530,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: Colors.green,
   },
-
   errorOverlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(40,20,20,0.94)",
@@ -499,7 +557,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: Spacing.sm,
   },
-
   idleHint: {
     flex: 1,
     alignItems: "center",
@@ -529,10 +586,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
   },
-
   controls: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: 32,
     alignItems: "center",
     gap: Spacing.md,
   },

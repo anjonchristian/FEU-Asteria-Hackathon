@@ -38,8 +38,8 @@ const RECENT = [
 
 export default function HomeScreen() {
   const { name, grade, score, subjects } = useProfile();
-
   const router = useRouter();
+
   const mySubjects = [...SUBJECTS].filter((s) => subjects.includes(s.id));
   const shown =
     mySubjects.length > 0 ? mySubjects.slice(0, 4) : [...SUBJECTS].slice(0, 4);
@@ -61,7 +61,7 @@ export default function HomeScreen() {
         >
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.greeting}>Good morning ☀️</Text>
+              <Text style={styles.greeting}>Good morning ✨</Text>
               <Text style={styles.heroName}>{name || "Learner"}!</Text>
             </View>
             <View style={styles.heroRight}>
@@ -120,6 +120,28 @@ export default function HomeScreen() {
                 color={Colors.forest}
               />
             </LinearGradient>
+          </Pressable>
+        </View>
+
+        {/* Study Vault Access */}
+        <View style={styles.section}>
+          <Pressable
+            style={({ pressed }) => [
+              styles.vaultCard,
+              pressed && styles.pressed,
+            ]}
+            onPress={() => router.push("/study-vault" as any)}
+          >
+            <View style={styles.vaultIcon}>
+              <Ionicons name="albums" size={24} color={Colors.teal} />
+            </View>
+            <View style={styles.vaultText}>
+              <Text style={styles.vaultTitle}>Study Vault</Text>
+              <Text style={styles.vaultSub}>
+                Review your AI-generated flashcards
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={Colors.teal} />
           </Pressable>
         </View>
 
@@ -195,7 +217,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: Colors.background },
   scroll: { paddingBottom: 32 },
-
   hero: {
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.xl,
@@ -253,7 +274,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs,
     fontWeight: "700",
   },
-
   section: { paddingHorizontal: Spacing.lg, marginTop: Spacing.lg },
   sectionHeader: {
     flexDirection: "row",
@@ -267,6 +287,44 @@ const styles = StyleSheet.create({
     color: Colors.forest,
   },
   seeAll: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.primary },
+
+  // Vault Card Styles
+  vaultCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: Colors.card,
+    padding: Spacing.md,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+    gap: Spacing.sm,
+  },
+  vaultIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: Radius.md,
+    backgroundColor: "rgba(74,167,124,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  vaultText: {
+    flex: 1,
+  },
+  vaultTitle: {
+    fontSize: FontSize.sm,
+    fontWeight: "900",
+    color: Colors.forest,
+  },
+  vaultSub: {
+    fontSize: FontSize.xs,
+    color: "rgba(28,56,41,0.65)",
+    marginTop: 2,
+  },
 
   challengeCard: { borderRadius: Radius.xl, overflow: "hidden" },
   challengeGradient: {
@@ -294,7 +352,6 @@ const styles = StyleSheet.create({
     color: "rgba(28,56,41,0.65)",
     marginTop: 2,
   },
-
   subjectsGrid: { flexDirection: "row", flexWrap: "wrap", gap: Spacing.sm },
   subjectWrap: { width: "47.5%" },
   subjectCard: {
@@ -319,7 +376,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "rgba(28,56,41,0.45)",
   },
-
   activityCard: {
     backgroundColor: Colors.card,
     borderRadius: Radius.xl,
@@ -353,6 +409,5 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: Colors.primary,
   },
-
   pressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
 });

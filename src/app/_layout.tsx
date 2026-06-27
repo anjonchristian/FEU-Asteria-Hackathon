@@ -24,7 +24,6 @@ export default function RootLayout() {
             name="study-session"
             options={{ animation: "slide_from_bottom" }}
           />
-          <Stack.Screen name="study-jam" options={{ animation: "slide_from_right" }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

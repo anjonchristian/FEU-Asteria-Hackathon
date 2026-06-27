@@ -3,18 +3,18 @@ import * as Haptics from "expo-haptics";
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
 import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import RadarAnimation from "../../components/study-jam/RadarAnimation";
-import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
-import { useProfile } from "../../store/profile";
+import RadarAnimation from "../../../components/study-jam/RadarAnimation";
+import { Colors, FontSize, Radius, Spacing } from "../../../constants/theme";
+import { useProfile } from "../../../store/profile";
 
 /**
  * Study Jam hub. It launches mock host/find BLE flows and shows persisted
