@@ -28,7 +28,7 @@ export default function StudyJamScreen() {
 
   const handleHost = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    router.replace("/study-jam/host" as any);
+    router.navigate("/study-jam/host" as any);
   };
 
   const handleFind = () => {
@@ -38,7 +38,7 @@ export default function StudyJamScreen() {
 
   const handleRadarComplete = useCallback(() => {
     setShowRadar(false);
-    router.replace("/study-jam/find" as any);
+    router.navigate("/study-jam/find" as any);
   }, []);
 
   const handleClearHistory = () => {

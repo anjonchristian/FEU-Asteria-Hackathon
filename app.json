@@ -22,10 +22,6 @@
       ],
       "package": "com.anonymous.kahayag"
     },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [
