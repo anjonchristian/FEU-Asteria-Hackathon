@@ -16,6 +16,12 @@ import { useVaultStore } from "../store/vault";
 
 export type OcrScanState = "idle" | "processing" | "result" | "error";
 
+export type PendingPhoto = {
+  uri: string;
+  width: number;
+  height: number;
+};
+
 export function useOcrWorkflow() {
   const { language, name, grade, subjects } = useProfile();
   const setScanContext = useOcrContextStore((s) => s.setScanContext);
@@ -27,6 +33,9 @@ export function useOcrWorkflow() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [savedForStudy, setSavedForStudy] = useState(false);
   const [isGeneratingQuiz, setIsGeneratingQuiz] = useState(false);
+
+  // Holds the raw photo URI waiting for crop confirmation
+  const [pendingPhoto, setPendingPhoto] = useState<PendingPhoto | null>(null);
 
   const profileContext = useMemo(
     () => ({ language, name, grade, subjects }),
@@ -57,12 +66,14 @@ export function useOcrWorkflow() {
     [language],
   );
 
+  // Runs OCR on a URI — called after crop is confirmed
   const processImage = useCallback(
     async (uri: string, source: "camera" | "gallery") => {
       setScanState("processing");
       setPipelineResult(null);
       setErrorMessage(null);
       setSavedForStudy(false);
+      setPendingPhoto(null);
 
       try {
         const result = await runOcrPipeline(uri, source, profileContext);
@@ -76,6 +87,7 @@ export function useOcrWorkflow() {
     [handleOcrError, profileContext],
   );
 
+  // Takes a photo and stores it as pendingPhoto — crop happens next
   const captureFromCamera = useCallback(
     async (cameraRef: RefObject<CameraView | null>) => {
       if (!cameraRef.current) return;
@@ -91,12 +103,29 @@ export function useOcrWorkflow() {
           throw { code: "CAPTURE_FAILED", message: "Failed to capture photo" };
         }
 
-        await processImage(photo.uri, "camera");
+        setPendingPhoto({
+          uri: photo.uri,
+          width: photo.width,
+          height: photo.height,
+        });
       } catch (error) {
         handleOcrError(error);
       }
     },
-    [handleOcrError, processImage],
+    [handleOcrError],
+  );
+
+  // Called when user cancels the crop screen
+  const cancelCrop = useCallback(() => {
+    setPendingPhoto(null);
+  }, []);
+
+  // Called when CropView confirms — receives the cropped URI
+  const onCropComplete = useCallback(
+    (croppedUri: string) => {
+      processImage(croppedUri, "camera");
+    },
+    [processImage],
   );
 
   const pickFromGallery = useCallback(async () => {
@@ -122,6 +151,7 @@ export function useOcrWorkflow() {
       return;
     }
 
+    // Gallery images skip crop and go straight to OCR
     await processImage(picked.assets[0].uri, "gallery");
   }, [handleOcrError, processImage]);
 
@@ -135,16 +165,10 @@ export function useOcrWorkflow() {
 
   const generateQuiz = useCallback(async () => {
     if (!pipelineResult) return;
-
     setIsGeneratingQuiz(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-
     try {
-      // NOTE: Replace this mock delay with your actual llama.rn generateQuizFromText call
-      // const newDeck = await generateQuizFromText(llamaContext, pipelineResult.result.cleanedText);
-
       await new Promise((resolve) => setTimeout(resolve, 4000));
-
       const dummyDeck = {
         id: `deck-${Date.now()}`,
         title: `Generated Quiz (${new Date().toLocaleDateString()})`,
@@ -159,7 +183,6 @@ export function useOcrWorkflow() {
           },
         ],
       };
-
       addDeck(dummyDeck);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.push("/study-vault" as any);
@@ -177,6 +200,7 @@ export function useOcrWorkflow() {
     setErrorMessage(null);
     setSavedForStudy(false);
     setIsGeneratingQuiz(false);
+    setPendingPhoto(null);
   }, []);
 
   return {
@@ -185,7 +209,10 @@ export function useOcrWorkflow() {
     errorMessage,
     savedForStudy,
     isGeneratingQuiz,
+    pendingPhoto,
     captureFromCamera,
+    cancelCrop,
+    onCropComplete,
     processImage,
     pickFromGallery,
     saveForStudy,

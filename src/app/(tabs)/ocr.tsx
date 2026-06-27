@@ -1,8 +1,9 @@
 import { CameraView } from "expo-camera";
 import { useRef } from "react";
-import { StyleSheet, View } from "react-native";
+import { Modal, StyleSheet, View } from "react-native";
+import CropView from "../../components/CropView";
 import { OcrCaptureView } from "../../components/ocr/OcrCaptureView";
-import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
+import { Colors } from "../../constants/theme";
 import { useOcrWorkflow } from "../../hooks/useOcrWorkflow";
 
 export default function OcrScreen() {
@@ -14,7 +15,10 @@ export default function OcrScreen() {
     errorMessage,
     savedForStudy,
     isGeneratingQuiz,
+    pendingPhoto,
     captureFromCamera,
+    cancelCrop,
+    onCropComplete,
     pickFromGallery,
     saveForStudy,
     generateQuiz,
@@ -36,6 +40,27 @@ export default function OcrScreen() {
         onGenerateQuiz={generateQuiz}
         onReset={reset}
       />
+
+      <Modal
+        visible={!!pendingPhoto}
+        animationType="slide"
+        transparent={false}
+        onRequestClose={cancelCrop}
+      >
+        {/* <SafeAreaProvider> */}
+        <View style={styles.modalFill}>
+          {pendingPhoto && (
+            <CropView
+              imageUri={pendingPhoto.uri}
+              imageWidth={pendingPhoto.width}
+              imageHeight={pendingPhoto.height}
+              onCropComplete={onCropComplete}
+              onCancel={cancelCrop}
+            />
+          )}
+        </View>
+        {/* </SafeAreaProvider> */}
+      </Modal>
     </View>
   );
 }
@@ -45,39 +70,8 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
-  stateScreen: {
+  modalFill: {
     flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.md,
-    padding: Spacing.xl,
-    backgroundColor: Colors.background,
-  },
-  stateTitle: {
-    color: Colors.forest,
-    fontSize: FontSize.xl,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  stateBody: {
-    color: Colors.mutedText,
-    fontSize: FontSize.md,
-    fontWeight: "700",
-    lineHeight: 22,
-    textAlign: "center",
-  },
-  retryButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 12,
-  },
-  retryText: {
-    color: "#fff",
-    fontSize: FontSize.md,
-    fontWeight: "900",
+    backgroundColor: "#000",
   },
 });

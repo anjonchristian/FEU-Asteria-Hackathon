@@ -1,5 +1,4 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SUBJECTS } from "../constants/data";
@@ -15,15 +14,6 @@ export default function StudyVaultScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={24} color={Colors.primary} />
-          <Text style={styles.backBtnText}>Back</Text>
-        </Pressable>
-        <Text style={styles.headerTitle}>Study Vault</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={styles.pageTitle}>Your Generated Decks</Text>
         <Text style={styles.pageSub}>
