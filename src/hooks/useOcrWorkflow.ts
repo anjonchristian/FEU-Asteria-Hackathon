@@ -10,6 +10,8 @@ import {
   type OcrErrorCode,
   type OcrPipelineResult,
 } from "../services/ocr";
+import { generateQuizFromText } from "../services/sml/quizGenerator";
+import { getLlamaContext } from "../store/llamaContext";
 import { useOcrContextStore } from "../store/ocrContext";
 import { useProfile } from "../store/profile";
 import { useVaultStore } from "../store/vault";
@@ -165,29 +167,35 @@ export function useOcrWorkflow() {
 
   const generateQuiz = useCallback(async () => {
     if (!pipelineResult) return;
+
+    const llama = getLlamaContext();
+    if (!llama) {
+      setErrorMessage(
+        "The AI model is not ready yet. Please wait a moment and try again.",
+      );
+      return;
+    }
+
     setIsGeneratingQuiz(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 4000));
-      const dummyDeck = {
-        id: `deck-${Date.now()}`,
-        title: `Generated Quiz (${new Date().toLocaleDateString()})`,
-        subjectId: subjects.length > 0 ? subjects[0] : "general",
-        createdAt: new Date().toISOString(),
-        cards: [
-          {
-            id: "1",
-            question: "Sample AI Generated Question?",
-            options: ["Option A", "Option B", "Option C", "Option D"],
-            answer: "Option A",
-          },
-        ],
-      };
-      addDeck(dummyDeck);
+      const deck = await generateQuizFromText(
+        llama,
+        pipelineResult.result.cleanedText,
+        subjects.length > 0 ? subjects[0] : "general",
+        5,
+      );
+      addDeck(deck);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       router.push("/study-vault" as any);
     } catch (error) {
-      console.error("Failed to generate quiz:", error);
+      console.error("[generateQuiz] Failed:", error);
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "Quiz generation failed. Try scanning shorter text.",
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsGeneratingQuiz(false);
