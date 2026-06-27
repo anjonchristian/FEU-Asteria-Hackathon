@@ -1,3 +1,12 @@
+# Author(s)
+Anjon Christian Paderez
+Francis Luiji Llanto
+Rob Godwin Raymundo
+
+# Setup Guide
+Clone the repository
+and run npx expo build:android or npx expo run:android for development build.
+
 # 💡 Kahayag
 
 Lightweight, zero online connectivity mobile learning platform for primary filipino students supports both android and ios
@@ -207,5 +216,8 @@ CREATE TABLE challenges (
 ```
 
 ---
+
+# AI Usage
+This project has utilized different LLMs for planning, and vibecoding the MVP.
 
 _Project Kahayag(meaning light/brightness) tackles the core challenge of the Accenture TechSprint by eliminating the digital divide._
