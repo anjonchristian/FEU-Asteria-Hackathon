@@ -11,7 +11,6 @@ import {
   type OcrPipelineResult,
 } from "../services/ocr";
 import { generateQuizFromText } from "../services/sml/quizGenerator";
-import { getLlamaContext } from "../store/llamaContext";
 import { useOcrContextStore } from "../store/ocrContext";
 import { useProfile } from "../store/profile";
 import { useVaultStore } from "../store/vault";
@@ -168,20 +167,12 @@ export function useOcrWorkflow() {
   const generateQuiz = useCallback(async () => {
     if (!pipelineResult) return;
 
-    const llama = getLlamaContext();
-    if (!llama) {
-      setErrorMessage(
-        "The AI model is not ready yet. Please wait a moment and try again.",
-      );
-      return;
-    }
-
     setIsGeneratingQuiz(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
       const deck = await generateQuizFromText(
-        llama,
+        null,
         pipelineResult.result.cleanedText,
         subjects.length > 0 ? subjects[0] : "general",
         5,

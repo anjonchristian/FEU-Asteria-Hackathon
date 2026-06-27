@@ -24,6 +24,14 @@ export default function RootLayout() {
             name="study-session"
             options={{ animation: "slide_from_bottom" }}
           />
+          <Stack.Screen
+            name="study-vault"
+            options={{ animation: "slide_from_right" }}
+          />
+          <Stack.Screen
+            name="quiz-player"
+            options={{ animation: "slide_from_bottom" }}
+          />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
