@@ -1,262 +1,333 @@
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import QuizSession from "../../components/study-jam/QuizSession";
-import Scoreboard from "../../components/study-jam/Scoreboard";
-import { QUESTIONS } from "../../constants/data";
 import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
-import { useProfile } from "../../store/profile";
+import { useMultiplayerStore } from "../../services/studyJam/multiplayer";
 
-type HostPhase = "waiting" | "quiz" | "scoreboard";
+export default function HostScreen() {
+  const router = useRouter();
+  const [name, setName] = useState("");
 
-const OPPONENT_NAME = "Redmi Note 12";
-const OPPONENT_SCORE = 7;
-
-/**
- * Mock host flow. A fake nearby phone auto-joins after six seconds, then the
- * learner starts a local quiz and saves the result to profile history.
- */
-export default function HostStudyJamScreen() {
-  const addStudyJamSession = useProfile((state) => state.addStudyJamSession);
-  const [phase, setPhase] = useState<HostPhase>("waiting");
-  const [participantJoined, setParticipantJoined] = useState(false);
-  const [score, setScore] = useState(0);
-  const [answers, setAnswers] = useState<boolean[]>([]);
-  const pulse = useRef(new Animated.Value(0)).current;
-  const savedRef = useRef(false);
+  const { hostRoom, hostIp, players, status, startGame, leaveRoom, error } =
+    useMultiplayerStore();
 
   useEffect(() => {
-    const pulseLoop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulse, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulse, {
-          toValue: 0,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    pulseLoop.start();
-
-    const joinTimer = setTimeout(() => {
-      setParticipantJoined(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 6000);
-
-    return () => {
-      clearTimeout(joinTimer);
-      pulseLoop.stop();
-    };
-  }, [pulse]);
-
-  const handleStart = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPhase("quiz");
-  };
-
-  const handleComplete = (nextScore: number, nextAnswers: boolean[]) => {
-    setScore(nextScore);
-    setAnswers(nextAnswers);
-    if (!savedRef.current) {
-      savedRef.current = true;
-      addStudyJamSession({
-        id: `host-${Date.now()}`,
-        date: new Date().toISOString(),
-        mode: "host",
-        userScore: nextScore,
-        opponentName: OPPONENT_NAME,
-        opponentScore: OPPONENT_SCORE,
-        userWon: nextScore > OPPONENT_SCORE,
-        answers: nextAnswers,
-      });
+    if (status === "playing") {
+      router.push("/study-session");
     }
-    setPhase("scoreboard");
+  }, [status, router]);
+
+  const handleHost = async () => {
+    if (name.trim()) {
+      await hostRoom(name.trim());
+    }
   };
 
-  const pulseScale = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.18],
-  });
-  const pulseOpacity = pulse.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.45, 0.1],
-  });
-
-  if (phase === "quiz") {
+  if (hostIp) {
     return (
       <SafeAreaView style={styles.safe}>
-        <QuizSession questions={QUESTIONS} onComplete={handleComplete} />
-      </SafeAreaView>
-    );
-  }
+        <View style={styles.container}>
+          <Text style={styles.screenTitle}>Your Study Jam Room</Text>
 
-  if (phase === "scoreboard") {
-    return (
-      <SafeAreaView style={styles.safe}>
-        <Scoreboard
-          userScore={score}
-          totalQuestions={QUESTIONS.length}
-          userAnswers={answers}
-          opponentName={OPPONENT_NAME}
-          opponentScore={OPPONENT_SCORE}
-          isHost
-          onBack={() => router.replace("/study-jam" as any)}
-        />
+          <Text style={styles.description}>
+            Players should connect to your Wi-Fi or hotspot, then enter this IP.
+          </Text>
+
+          <View style={styles.codeCard}>
+            <Text style={styles.codeLabel}>HOST IP ADDRESS</Text>
+
+            <Text style={styles.code}>{hostIp}</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Players ({players.length})</Text>
+
+          <View style={styles.playerList}>
+            {players.map((p) => (
+              <View key={p.id} style={styles.playerItem}>
+                <Ionicons
+                  name={p.isHost ? "star" : "person-circle-outline"}
+                  size={24}
+                  color={p.isHost ? Colors.yellow : Colors.teal}
+                />
+
+                <Text style={styles.playerName}>
+                  {p.name}
+                  {p.isHost && " (Host)"}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.footer}>
+            <Pressable
+              style={[
+                styles.primaryButton,
+                players.length < 2 && styles.buttonDisabled,
+              ]}
+              disabled={players.length < 2}
+              onPress={startGame}
+            >
+              <Text style={styles.primaryButtonText}>Start Jam</Text>
+
+              <Ionicons name="play" size={20} color="#fff" />
+            </Pressable>
+
+            <Pressable style={styles.secondaryButton} onPress={leaveRoom}>
+              <Text style={styles.secondaryButtonText}>Cancel</Text>
+            </Pressable>
+          </View>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.waiting}>
-        <View style={styles.broadcastWrap}>
-          <Animated.View
-            style={[
-              styles.pulse,
-              {
-                opacity: pulseOpacity,
-                transform: [{ scale: pulseScale }],
-              },
-            ]}
-          />
-          <View style={styles.phoneCircle}>
-            <Ionicons name="phone-portrait" size={56} color="#fff" />
+      <View style={styles.container}>
+        <Text style={styles.screenTitle}>Host Local Jam</Text>
+
+        <View style={styles.heroBox}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="server-outline" size={32} color={Colors.primary} />
           </View>
+
+          <Text style={styles.description}>
+            Turn your phone into a local server. Other players connect through
+            Wi-Fi or hotspot.
+          </Text>
         </View>
 
-        <Text style={styles.title}>Naghihintay ng mga sasali...</Text>
-        <Text style={styles.subtitle}>Siguraduhing naka-on ang Bluetooth</Text>
+        {error && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={20} color="#C94343" />
 
-        {participantJoined ? (
-          <View style={styles.joinedCard}>
-            <View style={styles.joinedIcon}>
-              <Ionicons name="phone-portrait-outline" size={20} color="#fff" />
-            </View>
-            <View style={styles.joinedText}>
-              <Text style={styles.joinedTitle}>
-                Si {OPPONENT_NAME} ay sumali sa session!
-              </Text>
-              <Text style={styles.joinedSub}>Ready na para sa Grade 5 Review Quiz</Text>
-            </View>
+            <Text style={styles.errorText}>{error}</Text>
           </View>
-        ) : null}
+        )}
 
-        {participantJoined ? (
-          <Pressable
-            onPress={handleStart}
-            style={({ pressed }) => [styles.startButton, pressed && styles.pressed]}
-          >
-            <Ionicons name="play" size={20} color="#fff" />
-            <Text style={styles.startText}>Simulan ang Study Jam</Text>
-          </Pressable>
-        ) : null}
+        <Text style={styles.label}>Your Name</Text>
+
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your name"
+          placeholderTextColor={Colors.mutedText}
+          value={name}
+          onChangeText={setName}
+        />
+
+        <Pressable
+          style={[styles.primaryButton, !name.trim() && styles.buttonDisabled]}
+          disabled={!name.trim()}
+          onPress={handleHost}
+        >
+          <Text style={styles.primaryButtonText}>Start Local Server</Text>
+        </Pressable>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F9FAF7" },
-  waiting: {
+  safe: {
     flex: 1,
+    backgroundColor: Colors.background,
+  },
+  screenTitle: {
+    fontSize: FontSize.xxxl,
+    fontWeight: "900",
+    color: Colors.forest,
+    marginBottom: Spacing.xl,
+  },
+  header: {
+    flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.md,
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  headerTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "900",
+    color: Colors.forest,
+    flex: 1,
+    textAlign: "center",
+  },
+  backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: 60,
+  },
+  backBtnText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
+    fontWeight: "700",
+  },
+  container: {
+    flex: 1,
     padding: Spacing.lg,
   },
-  broadcastWrap: {
-    width: 190,
-    height: 190,
+  heroBox: {
+    alignItems: "center",
+    marginVertical: Spacing.xl,
+    gap: Spacing.md,
+  },
+  iconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "rgba(40,148,127,0.15)",
     alignItems: "center",
     justifyContent: "center",
   },
-  pulse: {
-    position: "absolute",
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: Colors.primary,
-  },
-  phoneCircle: {
-    width: 112,
-    height: 112,
-    borderRadius: 56,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.primary,
-  },
-  title: {
-    color: Colors.forest,
-    fontSize: FontSize.xl,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  subtitle: {
+  description: {
+    fontSize: FontSize.sm,
     color: Colors.mutedText,
-    fontSize: FontSize.md,
-    fontWeight: "700",
     textAlign: "center",
+    lineHeight: 22,
+    fontWeight: "600",
   },
-  joinedCard: {
-    width: "100%",
+  sectionTitle: {
+    fontSize: FontSize.md,
+    fontWeight: "900",
+    color: Colors.forest,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
+  },
+  label: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.mutedText,
+    marginBottom: Spacing.xs,
+  },
+  instructionCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.sm,
-    backgroundColor: "#fff",
-    borderRadius: Radius.xl,
+    backgroundColor: "rgba(40,148,127,0.08)",
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
     borderWidth: 1,
     borderColor: Colors.border,
-    padding: Spacing.md,
-    marginTop: Spacing.lg,
+    marginBottom: Spacing.lg,
+    gap: Spacing.sm,
   },
-  joinedIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.primary,
-  },
-  joinedText: { flex: 1 },
-  joinedTitle: {
+  instructionText: {
     color: Colors.forest,
-    fontSize: FontSize.sm,
-    fontWeight: "900",
-  },
-  joinedSub: {
-    color: Colors.mutedText,
-    fontSize: FontSize.xs,
+    fontSize: FontSize.xs + 1,
+    marginBottom: 4,
     fontWeight: "700",
-    marginTop: 2,
   },
-  startButton: {
-    minHeight: 54,
+  input: {
+    backgroundColor: Colors.card,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    marginBottom: Spacing.xl,
+    fontSize: FontSize.md,
+    color: Colors.forest,
+    fontWeight: "700",
+  },
+  codeCard: {
+    backgroundColor: Colors.primary,
+    padding: Spacing.xl,
+    borderRadius: Radius.xl,
+    alignItems: "center",
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 8,
+  },
+  codeLabel: {
+    color: "rgba(255,255,255,0.8)",
+    fontSize: FontSize.xs,
+    fontWeight: "800",
+    letterSpacing: 1.5,
+  },
+  code: {
+    color: "#fff",
+    fontSize: FontSize.xxxl,
+    fontWeight: "900",
+    letterSpacing: 2,
+    marginTop: 8,
+  },
+  playerList: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    minHeight: 120,
+    gap: Spacing.sm,
+  },
+  playerItem: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
     gap: Spacing.sm,
-    alignSelf: "stretch",
-    borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
+    paddingVertical: 6,
   },
-  startText: {
+  playerName: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.forest,
+  },
+  footer: {
+    marginTop: "auto",
+    gap: Spacing.sm,
+    paddingTop: Spacing.xl,
+  },
+  primaryButton: {
+    flexDirection: "row",
+    backgroundColor: Colors.primary,
+    paddingVertical: 16,
+    borderRadius: Radius.full,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  buttonDisabled: {
+    backgroundColor: Colors.mutedText,
+    opacity: 0.6,
+  },
+  primaryButtonText: {
     color: "#fff",
     fontSize: FontSize.md,
     fontWeight: "900",
   },
-  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
+  secondaryButton: {
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: Radius.full,
+    backgroundColor: "rgba(201,67,67,0.1)",
+  },
+  secondaryButtonText: {
+    color: "#C94343",
+    fontSize: FontSize.sm,
+    fontWeight: "900",
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.md,
+    gap: 8,
+  },
+  errorText: {
+    color: "#C94343",
+    fontWeight: "700",
+    fontSize: FontSize.sm,
+    flex: 1,
+  },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
 });

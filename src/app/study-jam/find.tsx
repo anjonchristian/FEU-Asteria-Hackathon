@@ -1,368 +1,416 @@
+// src/app/study-jam/find.tsx
 import { Ionicons } from "@expo/vector-icons";
-import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
+  FlatList,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import QuizSession from "../../components/study-jam/QuizSession";
-import Scoreboard from "../../components/study-jam/Scoreboard";
-import { QUESTIONS } from "../../constants/data";
 import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
-import { useProfile } from "../../store/profile";
+import { useMultiplayerStore } from "../../services/studyJam/multiplayer";
 
-type FindPhase = "found" | "joining" | "waiting" | "starting" | "quiz" | "scoreboard";
+export default function FindScreen() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [manualIp, setManualIp] = useState("");
 
-const HOST_NAME = "Samsung Galaxy A14";
-const OTHER_NAME = "Cherry Mobile Aqua S10";
-const HOST_SCORE = 7;
-const OTHER_SCORE = 5;
-
-/**
- * Mock join flow. It simulates joining a discovered BLE session, waiting for
- * the host countdown, running the shared quiz, and saving the result.
- */
-export default function FindStudyJamScreen() {
-  const addStudyJamSession = useProfile((state) => state.addStudyJamSession);
-  const [phase, setPhase] = useState<FindPhase>("found");
-  const [waitCount, setWaitCount] = useState(5);
-  const [startCount, setStartCount] = useState(3);
-  const [score, setScore] = useState(0);
-  const [answers, setAnswers] = useState<boolean[]>([]);
-  const savedRef = useRef(false);
+  const {
+    joinRoom,
+    hostIp,
+    players,
+    status,
+    error,
+    leaveRoom,
+    startDiscovery,
+    stopDiscovery,
+    discoveredHosts,
+    me,
+  } = useMultiplayerStore();
 
   useEffect(() => {
-    if (phase !== "waiting") return;
-
-    setWaitCount(5);
-    const interval = setInterval(() => {
-      setWaitCount((value) => {
-        if (value <= 1) {
-          clearInterval(interval);
-          setPhase("starting");
-          return 1;
-        }
-        return value - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [phase]);
+    startDiscovery();
+    return () => {
+      stopDiscovery();
+    };
+  }, []);
 
   useEffect(() => {
-    if (phase !== "starting") return;
-
-    setStartCount(3);
-    const interval = setInterval(() => {
-      setStartCount((value) => {
-        if (value <= 1) {
-          clearInterval(interval);
-          setPhase("quiz");
-          return 0;
-        }
-        return value - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [phase]);
-
-  const handleJoin = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setPhase("joining");
-    setTimeout(() => {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setPhase("waiting");
-    }, 1000);
-  };
-
-  const handleComplete = (nextScore: number, nextAnswers: boolean[]) => {
-    setScore(nextScore);
-    setAnswers(nextAnswers);
-    if (!savedRef.current) {
-      savedRef.current = true;
-      addStudyJamSession({
-        id: `joined-${Date.now()}`,
-        date: new Date().toISOString(),
-        mode: "joined",
-        userScore: nextScore,
-        opponentName: HOST_NAME,
-        opponentScore: HOST_SCORE,
-        userWon: nextScore > HOST_SCORE,
-        answers: nextAnswers,
-      });
+    if (status === "playing") {
+      router.push("/study-session");
     }
-    setPhase("scoreboard");
+  }, [status, router]);
+
+  const handleJoinDiscovered = (ip: string) => {
+    if (!name.trim()) {
+      Alert.alert("Missing Name", "Please enter your name first");
+      return;
+    }
+    joinRoom(ip, name.trim());
   };
 
-  if (phase === "quiz") {
+  const handleManualJoin = () => {
+    if (!name.trim()) {
+      Alert.alert("Missing Name", "Please enter your name first");
+      return;
+    }
+    if (manualIp.trim()) {
+      joinRoom(manualIp.trim(), name.trim());
+    }
+  };
+
+  if (status === "connecting") {
     return (
       <SafeAreaView style={styles.safe}>
-        <QuizSession questions={QUESTIONS} onComplete={handleComplete} />
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.centerText}>Connecting to room...</Text>
+        </View>
       </SafeAreaView>
     );
   }
 
-  if (phase === "scoreboard") {
+  if (hostIp) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Scoreboard
-          userScore={score}
-          totalQuestions={QUESTIONS.length}
-          userAnswers={answers}
-          opponentName={HOST_NAME}
-          opponentScore={HOST_SCORE}
-          isHost={false}
-          otherParticipants={[{ name: OTHER_NAME, score: OTHER_SCORE }]}
-          onBack={() => router.replace("/study-jam" as any)}
-        />
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Connected!</Text>
+        </View>
+        <View style={styles.container}>
+          <View style={styles.waitingCard}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.waitingText}>Waiting for host to start...</Text>
+          </View>
+
+          <Text style={styles.sectionTitle}>Players ({players.length})</Text>
+          <View style={styles.playerList}>
+            {players.map((p) => (
+              <View key={p.id} style={styles.playerItem}>
+                <Ionicons
+                  name="person-circle-outline"
+                  size={24}
+                  color={Colors.teal}
+                />
+                <Text style={styles.playerName}>
+                  {p.name}
+                  {p.id === me?.id ? " (You)" : ""}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={leaveRoom}
+          >
+            <Text style={styles.secondaryButtonText}>Leave Room</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.content}>
-        {phase === "found" || phase === "joining" ? (
-          <>
-            <Text style={styles.title}>May nahanap na session</Text>
-            <View style={styles.sessionCard}>
-              <View style={styles.cardTop}>
-                <View style={styles.hostIcon}>
-                  <Ionicons name="phone-portrait" size={28} color="#fff" />
-                </View>
-                <View style={styles.hostText}>
-                  <Text style={styles.hostName}>{HOST_NAME}</Text>
-                  <Text style={styles.topic}>Grade 5 Review Quiz</Text>
-                  <Text style={styles.participants}>2 nang naka-join</Text>
-                </View>
-                <SignalBars />
-              </View>
+    <SafeAreaView style={styles.safe} edges={["top"]}>
+      <View style={styles.container}>
+        <Text style={styles.screenTitle}>Find a Jam</Text>
+
+        {error && (
+          <View style={styles.errorBox}>
+            <Ionicons name="alert-circle" size={20} color="#C94343" />
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        )}
+
+        <Text style={styles.label}>Your Name</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your name"
+          placeholderTextColor={Colors.mutedText}
+          value={name}
+          onChangeText={setName}
+        />
+
+        <Text style={styles.sectionTitle}>Nearby Jams</Text>
+        {discoveredHosts.length === 0 ? (
+          <View style={styles.scanningBox}>
+            <ActivityIndicator size="small" color={Colors.primary} />
+            <Text style={styles.scanningText}>
+              Scanning Wi-Fi for local hosts...
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={discoveredHosts}
+            keyExtractor={(item) => item.ip}
+            renderItem={({ item }) => (
               <Pressable
-                onPress={handleJoin}
-                disabled={phase === "joining"}
                 style={({ pressed }) => [
-                  styles.joinButton,
+                  styles.hostCard,
                   pressed && styles.pressed,
-                  phase === "joining" && styles.disabled,
                 ]}
+                onPress={() => handleJoinDiscovered(item.ip)}
               >
-                {phase === "joining" ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="log-in-outline" size={20} color="#fff" />
-                )}
-                <Text style={styles.joinText}>
-                  {phase === "joining" ? "Sumasali..." : "Sumali sa Session"}
-                </Text>
+                <View style={styles.hostInfo}>
+                  <Text style={styles.hostName}>{item.name}'s Jam</Text>
+                  <Text style={styles.hostIp}>{item.ip}</Text>
+                </View>
+                <View style={styles.joinBadge}>
+                  <Text style={styles.joinText}>Join</Text>
+                </View>
               </Pressable>
-            </View>
-          </>
-        ) : null}
+            )}
+            style={{ maxHeight: 200 }}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
 
-        {phase === "waiting" ? (
-          <View style={styles.waitingPanel}>
-            <Text style={styles.title}>Naka-join ka na</Text>
-            <View style={styles.peopleCard}>
-              <Participant name={HOST_NAME} role="Host" crown />
-              <Participant name="Ikaw" role="Participant" highlighted />
-              <Participant name={OTHER_NAME} role="Participant" />
-            </View>
-            <Text style={styles.waitText}>
-              Naghihintay sa host para simulan ang session...
-            </Text>
-            <Text style={styles.countdown}>Magsisimula sa {waitCount}...</Text>
-          </View>
-        ) : null}
-
-        {phase === "starting" ? (
-          <View style={styles.startPanel}>
-            <Text style={styles.startCount}>
-              {startCount > 0 ? `${startCount}...` : "SIMULA!"}
-            </Text>
-          </View>
-        ) : null}
+        <Text style={styles.sectionTitle}>Manual IP Connection</Text>
+        <View style={styles.manualJoinRow}>
+          <TextInput
+            style={[styles.input, { flex: 1, marginBottom: 0 }]}
+            placeholder="192.168.1.5"
+            placeholderTextColor={Colors.mutedText}
+            value={manualIp}
+            onChangeText={setManualIp}
+            keyboardType="numbers-and-punctuation"
+          />
+          <Pressable
+            style={({ pressed }) => [
+              styles.joinButton,
+              pressed && styles.pressed,
+            ]}
+            onPress={handleManualJoin}
+          >
+            <Text style={styles.joinButtonText}>Join</Text>
+          </Pressable>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-function SignalBars() {
-  return (
-    <View style={styles.signal}>
-      {[12, 18, 24].map((height) => (
-        <View key={height} style={[styles.signalBar, { height }]} />
-      ))}
-    </View>
-  );
-}
-
-interface ParticipantProps {
-  name: string;
-  role: string;
-  crown?: boolean;
-  highlighted?: boolean;
-}
-
-function Participant({ name, role, crown, highlighted }: ParticipantProps) {
-  return (
-    <View style={[styles.participantRow, highlighted && styles.youRow]}>
-      <Ionicons
-        name={crown ? "ribbon" : "person-circle-outline"}
-        size={24}
-        color={highlighted ? "#fff" : Colors.primary}
-      />
-      <View style={styles.participantText}>
-        <Text style={[styles.personName, highlighted && styles.youText]}>{name}</Text>
-        <Text style={[styles.personRole, highlighted && styles.youSubText]}>
-          {role}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F9FAF7" },
-  content: {
-    flex: 1,
-    justifyContent: "center",
-    gap: Spacing.lg,
-    padding: Spacing.lg,
-  },
-  title: {
-    color: Colors.forest,
-    fontSize: FontSize.xl,
+  safe: { flex: 1, backgroundColor: Colors.background },
+  screenTitle: {
+    fontSize: FontSize.xxl,
     fontWeight: "900",
-    textAlign: "center",
+    color: Colors.forest,
+    marginBottom: Spacing.lg,
   },
-  sessionCard: {
-    backgroundColor: "#fff",
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    gap: Spacing.lg,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
-  },
-  cardTop: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Spacing.md,
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  hostIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: Radius.lg,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: Colors.forest,
-  },
-  hostText: { flex: 1, gap: 2 },
-  hostName: {
-    color: Colors.forest,
+  headerTitle: {
     fontSize: FontSize.lg,
     fontWeight: "900",
-  },
-  topic: {
-    color: Colors.primary,
-    fontSize: FontSize.sm,
-    fontWeight: "800",
-  },
-  participants: {
-    color: Colors.mutedText,
-    fontSize: FontSize.xs,
-    fontWeight: "700",
-  },
-  signal: {
-    height: 28,
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: 3,
-  },
-  signalBar: {
-    width: 5,
-    borderRadius: 3,
-    backgroundColor: Colors.primary,
-  },
-  joinButton: {
-    minHeight: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: Spacing.sm,
-    borderRadius: Radius.full,
-    backgroundColor: Colors.primary,
-  },
-  joinText: {
-    color: "#fff",
-    fontSize: FontSize.md,
-    fontWeight: "900",
-  },
-  disabled: { opacity: 0.75 },
-  waitingPanel: { gap: Spacing.lg },
-  peopleCard: {
-    backgroundColor: "#fff",
-    borderRadius: Radius.xl,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    padding: Spacing.md,
-    gap: Spacing.sm,
-  },
-  participantRow: {
-    minHeight: 56,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Spacing.sm,
-    borderRadius: Radius.lg,
-    paddingHorizontal: Spacing.sm,
-  },
-  youRow: { backgroundColor: Colors.primary },
-  participantText: { flex: 1 },
-  personName: {
     color: Colors.forest,
-    fontSize: FontSize.sm,
-    fontWeight: "900",
+    flex: 1,
+    textAlign: "center",
   },
-  personRole: {
-    color: Colors.mutedText,
-    fontSize: FontSize.xs,
+  backBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: 60,
+  },
+  backBtnText: {
+    fontSize: FontSize.sm,
+    color: Colors.primary,
     fontWeight: "700",
   },
-  youText: { color: "#fff" },
-  youSubText: { color: "rgba(255,255,255,0.78)" },
-  waitText: {
-    color: Colors.mutedText,
-    fontSize: FontSize.md,
-    fontWeight: "800",
-    lineHeight: 22,
-    textAlign: "center",
+  container: {
+    flex: 1,
+    padding: Spacing.lg,
   },
-  countdown: {
-    color: Colors.primary,
-    fontSize: FontSize.xl,
-    fontWeight: "900",
-    textAlign: "center",
-  },
-  startPanel: {
+  centerContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
+    gap: Spacing.md,
   },
-  startCount: {
-    color: Colors.primary,
-    fontSize: 54,
+  centerText: {
+    fontSize: FontSize.md,
+    fontWeight: "800",
+    color: Colors.mutedText,
+  },
+  sectionTitle: {
+    fontSize: FontSize.md,
     fontWeight: "900",
+    color: Colors.forest,
+    marginTop: Spacing.lg,
+    marginBottom: Spacing.sm,
   },
-  pressed: { opacity: 0.88, transform: [{ scale: 0.98 }] },
+  label: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.mutedText,
+    marginBottom: Spacing.xs,
+  },
+  input: {
+    backgroundColor: Colors.card,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 14,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    marginBottom: Spacing.md,
+    fontSize: FontSize.md,
+    color: Colors.forest,
+    fontWeight: "700",
+  },
+  scanningBox: {
+    padding: Spacing.lg,
+    alignItems: "center",
+    backgroundColor: "rgba(40,148,127,0.08)",
+    borderRadius: Radius.xl,
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+  },
+  scanningText: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: "700",
+  },
+  hostCard: {
+    backgroundColor: Colors.card,
+    padding: Spacing.md,
+    borderRadius: Radius.lg,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: Spacing.sm,
+    shadowColor: "#000",
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  hostInfo: { flex: 1 },
+  hostName: {
+    fontSize: FontSize.md,
+    fontWeight: "900",
+    color: Colors.forest,
+  },
+  hostIp: {
+    fontSize: FontSize.xs,
+    fontWeight: "700",
+    color: Colors.mutedText,
+    marginTop: 2,
+  },
+  joinBadge: {
+    backgroundColor: "rgba(40,148,127,0.1)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  joinText: {
+    color: Colors.primary,
+    fontWeight: "900",
+    fontSize: FontSize.sm,
+  },
+  manualJoinRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+  },
+  joinButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: Radius.lg,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  joinButtonText: {
+    color: "#fff",
+    fontWeight: "900",
+    fontSize: FontSize.md,
+  },
+  waitingCard: {
+    backgroundColor: "rgba(40,148,127,0.1)",
+    padding: Spacing.lg,
+    borderRadius: Radius.xl,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  waitingText: {
+    color: Colors.primary,
+    fontWeight: "800",
+    fontSize: FontSize.sm,
+  },
+  playerList: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    padding: Spacing.md,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    gap: Spacing.sm,
+  },
+  playerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.sm,
+    paddingVertical: 6,
+  },
+  playerName: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.forest,
+  },
+  secondaryButton: {
+    padding: Spacing.md,
+    alignItems: "center",
+    marginTop: Spacing.lg,
+    borderRadius: Radius.full,
+    backgroundColor: "rgba(201,67,67,0.1)",
+  },
+  secondaryButtonText: {
+    color: "#C94343",
+    fontWeight: "900",
+    fontSize: FontSize.sm,
+  },
+  errorBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
+    marginBottom: Spacing.md,
+    gap: 8,
+  },
+  errorText: {
+    color: "#C94343",
+    fontWeight: "700",
+    fontSize: FontSize.sm,
+    flex: 1,
+  },
+  pressed: {
+    opacity: 0.85,
+    transform: [{ scale: 0.98 }],
+  },
 });

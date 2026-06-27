@@ -7,86 +7,90 @@
   Supports Android and iOS.
 </p>
 
-## AI-Powered Study Companion for Filipino Learners
+---
 
-**Project Kahayag** (*meaning “light” or “brightness”*) is an offline-first AI learning companion designed for Filipino primary students.
+## 🎯 Project Overview
 
-It addresses the digital divide by providing personalized educational support directly on mobile devices with:
+### AI-Powered Study Companion for Filipino Learners
 
-* No internet dependency
-* No cloud infrastructure costs
-* No required data connection
+**Project Kahayag** (meaning _light_ or _brightness_) is an offline-first AI learning companion designed for Filipino primary students.
 
-By running a localized **Small Language Model (SLM)** through `llama.rn` and integrating offline OCR technology, Kahayag transforms a smartphone into an intelligent study assistant available anytime, anywhere.
+It tackles the digital divide by bringing personalized education support directly to mobile devices — with:
+
+- Zero internet dependency
+- Zero cloud costs
+- Zero required data connection
+
+By running a localized **Small Language Model (SLM)** through `llama.rn` and combining it with offline OCR, Kahayag transforms a smartphone into an intelligent study guide available anytime, anywhere.
 
 ---
 
-# Features
+# ✨ Features
 
-## Local AI Tutor
+## 🧠 Local AI Tutor
 
-Kahayag runs a 4-bit quantized Small Language Model directly on the device using `llama.rn`.
-
-Capabilities:
-
-* AI-generated explanations
-* Question answering
-* Study guidance
-* Practice question generation
-* Offline tutoring support
-
----
-
-## Offline Textbook Scanner
-
-Students can scan physical learning materials using built-in OCR technology.
+Powered by `llama.rn`, Kahayag runs a 4-bit quantized Small Language Model directly on the device.
 
 Features:
 
-* Extracts text from images
-* Fully offline processing
-* Supports textbooks, modules, and worksheets
-* No cloud OCR services required
+- AI-powered explanations
+- Question answering
+- Study hints
+- Practice generation
+- Offline tutoring
 
 ---
 
-## Filipino and English Support
+## 📸 Offline Textbook Scanner
+
+Students can scan physical learning materials using built-in OCR.
+
+Features:
+
+- Extracts text from images
+- Processes completely offline
+- Supports textbooks, modules, and worksheets
+- No cloud OCR APIs required
+
+---
+
+## 🇵🇭 Filipino + English Support
 
 Kahayag supports:
 
-* English
-* Filipino
-* Conversational Taglish
+- English
+- Filipino
+- Conversational Taglish
 
-This allows students to learn using familiar and accessible language.
+Helping students learn using familiar language.
 
 ---
 
-## Study Jam Sessions
+## 🎮 Study Jam Sessions
 
 Using Bluetooth Low Energy (BLE), students can:
 
-* Join peer learning sessions
-* Challenge classmates
-* Participate in educational quizzes
-* Study together without internet access
+- Join peer learning sessions
+- Challenge classmates
+- Compete in educational quizzes
+- Review together without internet access
 
 ---
 
-## Adaptive Learning System
+## 📈 Adaptive Learning System
 
-Kahayag tracks student progress locally.
+Kahayag tracks progress locally.
 
 The system:
 
-* Records learning activity
-* Measures topic mastery
-* Adjusts difficulty levels
-* Builds personalized learning paths
+- Records answers
+- Measures topic mastery
+- Adjusts difficulty
+- Builds personalized learning paths
 
 ---
 
-# Installation
+# 🚀 Installation
 
 ## Prerequisites
 
@@ -101,9 +105,7 @@ The system:
 
 ---
 
-# Setup
-
-Clone the repository:
+# Clone Repository
 
 ```bash
 git clone <repository-url>
@@ -131,21 +133,21 @@ Steps:
 
 ### Offline Testing
 
-After the application loads:
+After the app loads:
 
 ```text
-Enable Airplane Mode to verify offline functionality.
+Enable Airplane Mode to test offline functionality.
 ```
 
 ---
 
 ## Option 2 — Development Build
 
-Required for native functionality:
+Required for native features such as:
 
-* `llama.rn`
-* OCR
-* Bluetooth Low Energy
+- llama.rn
+- OCR
+- Bluetooth Low Energy
 
 ### Android
 
@@ -163,13 +165,13 @@ npm run ios
 
 # Available Scripts
 
-| Command                 | Description                   |
-| ----------------------- | ----------------------------- |
-| `npm start`             | Start Expo development server |
-| `npm run android`       | Run Android build             |
-| `npm run ios`           | Run iOS build                 |
-| `npm run lint`          | Run linter                    |
-| `npm run reset-project` | Reset project configuration   |
+| Command                 | Description                 |
+| ----------------------- | --------------------------- |
+| `npm start`             | Start Expo server           |
+| `npm run android`       | Run Android build           |
+| `npm run ios`           | Run iOS build               |
+| `npm run lint`          | Run linter                  |
+| `npm run reset-project` | Reset project configuration |
 
 ---
 
@@ -190,46 +192,46 @@ npm install
 
 ---
 
-# Technology Stack
+# 🛠 Tech Stack
 
-## Artificial Intelligence
+## AI
 
-* `llama.rn`
-* Local Small Language Model
-* 4-bit quantization
+- `llama.rn`
+- Local Small Language Model
+- 4-bit quantization
 
-## Mobile Development
+## Mobile
 
-* React Native
-* Expo
-* Expo Router
+- React Native
+- Expo
+- Expo Router
 
 ## OCR
 
-* `react-native-ml-kit/text-recognition`
+- `react-native-ml-kit/text-recognition`
 
 ## Database
 
-* SQLite
+- SQLite
 
-## UI Framework
+## UI
 
-* NativeWind / TailwindCSS
-* Lucide Icons
+- NativeWind / TailwindCSS
+- Lucide Icons
 
 ## State Management
 
-* Zustand
+- Zustand
 
 ## Connectivity
 
-* Bluetooth Low Energy (BLE)
+- Bluetooth Low Energy (BLE)
 
 ---
 
-# Database Architecture
+# 🗄 Database Architecture
 
-Kahayag uses SQLite for fully offline data storage.
+Kahayag uses SQLite for fully offline storage.
 
 ## Student Records
 
@@ -239,10 +241,10 @@ students
 
 Stores:
 
-* Student profile
-* Grade level
-* Experience points
-* Learning streaks
+- Student profile
+- Grade level
+- XP
+- Learning streaks
 
 ---
 
@@ -256,10 +258,10 @@ student_topic_mastery
 
 Handles:
 
-* Subjects
-* Topics
-* Mastery tracking
-* Learning progress
+- Subjects
+- Topics
+- Mastery tracking
+- Learning progress
 
 ---
 
@@ -271,10 +273,10 @@ session_history
 
 Stores:
 
-* Generated questions
-* Student responses
-* AI feedback
-* Review history
+- Generated questions
+- Student answers
+- AI feedback
+- Review history
 
 ---
 
@@ -287,27 +289,26 @@ challenges
 
 Supports:
 
-* Peer discovery
-* Offline study sessions
-* Learning competitions
+- Peer discovery
+- Study sessions
+- Offline competitions
 
 ---
 
-# AI Implementation
+# 🤖 AI Usage
 
-AI tools were used during planning and MVP development.
+Different LLM tools were used during planning and MVP development.
 
 The final application runs AI locally on-device to prioritize:
 
-* Student privacy
-* Accessibility
-* Offline learning
+- Privacy
+- Accessibility
+- Offline learning
 
 ---
 
-# Contributors
+# 👥 Contributors
 
-* **Anjon Christian Paderez**
-* **Francis Luiji Llanto**
-* **Rob Godwin Raymundo**
-
+- **Anjon Christian Paderez**
+- **Francis Luiji Llanto**
+- **Rob Godwin Raymundo**
