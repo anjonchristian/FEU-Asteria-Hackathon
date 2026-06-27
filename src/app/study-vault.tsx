@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SUBJECTS } from "../constants/data";
@@ -44,10 +45,12 @@ export default function StudyVaultScreen() {
                     styles.card,
                     pressed && styles.pressed,
                   ]}
-                  onPress={() => {
-                    // Navigate to the quiz player (to be built)
-                    console.log("Play deck:", deck.id);
-                  }}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/quiz-player",
+                      params: { deckId: deck.id },
+                    })
+                  }
                 >
                   <View style={styles.cardHeader}>
                     <View
