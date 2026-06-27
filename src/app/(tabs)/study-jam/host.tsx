@@ -3,8 +3,8 @@ import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
-import { useMultiplayerStore } from "../../services/studyJam/multiplayer";
+import { Colors, FontSize, Radius, Spacing } from "../../../constants/theme";
+import { useMultiplayerStore } from "../../../services/studyJam/multiplayer";
 
 export default function HostScreen() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { LinearGradient } from "expo-linear-gradient";
-import { router, Tabs, usePathname } from "expo-router";
+import { Tabs } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors, FontSize, Radius } from "../../constants/theme";
@@ -9,7 +9,6 @@ import { Colors, FontSize, Radius } from "../../constants/theme";
 // Custom tab bar with elevated OCR button in the center
 function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const pathname = usePathname();
 
   const tabs = [
     { name: "index", icon: "home-outline", activeIcon: "home", label: "Home" },
@@ -27,11 +26,11 @@ function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
       isCenter: true,
     },
     {
-      name: "studyJam",
-      icon: "trophy",
-      activeIcon: "trophy-outline",
+      name: "study-jam",
+      icon: "trophy-outline",
+      activeIcon: "trophy",
       label: "Study Jam",
-      href: "/study-jam",
+      // Removed the href override
     },
     {
       name: "profile",
@@ -42,33 +41,19 @@ function KahayagTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   ];
 
   return (
-    <View
-      style={[
-        styles.bar,
-        {
-          // Keep the tab bar above Android system navigation/home area.
-          paddingBottom: insets.bottom,
-        },
-      ]}
-    >
-      {tabs.map((tab, i) => {
+    <View style={[styles.bar, { paddingBottom: insets.bottom }]}>
+      {tabs.map((tab) => {
         const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
-        const isStudyJam = tab.name === "studyJam";
-        const isFocused = isStudyJam
-          ? pathname.startsWith("/study-jam")
-          : state.index === routeIndex;
+        const isFocused = state.index === routeIndex;
 
+        // Cleaned up the navigation logic to treat Study Jam like a normal tab
         const onPress = () => {
-          if (isStudyJam) {
-            router.replace("/study-jam" as any);
-            return;
-          }
-
           const event = navigation.emit({
             type: "tabPress",
             target: state.routes[routeIndex]?.key,
             canPreventDefault: true,
           });
+
           if (!isFocused && !event.defaultPrevented) {
             navigation.navigate(tab.name);
           }
@@ -138,6 +123,7 @@ export default function TabsLayout() {
       <Tabs.Screen name="index" />
       <Tabs.Screen name="progress" />
       <Tabs.Screen name="ocr" />
+      <Tabs.Screen name="study-jam" /> {/* Added the Study Jam screen here */}
       <Tabs.Screen name="profile" />
     </Tabs>
   );

@@ -397,15 +397,12 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
       server?.close();
     } catch {}
 
+    // REMOVE the removeAllListeners() calls here
     try {
-      broadcastSocket?.removeAllListeners?.();
-
       broadcastSocket?.close?.();
     } catch {}
 
     try {
-      discoverySocket?.removeAllListeners?.();
-
       discoverySocket?.close?.();
     } catch {}
 
@@ -415,17 +412,12 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
       players: [],
       status: "idle",
       error: null,
-
       server: null,
       client: null,
-
       connectedClients: [],
-
       broadcastSocket: null,
       discoverySocket: null,
-
       broadcastInterval: null,
-
       discoveredHosts: [],
     });
   },
