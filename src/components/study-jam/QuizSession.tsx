@@ -71,7 +71,7 @@ export default function QuizSession({
     <View style={styles.root}>
       <View style={styles.topBar}>
         <Text style={styles.count}>
-          Tanong {currentIndex + 1} ng {questions.length}
+          Question {currentIndex + 1} of {questions.length}
         </Text>
         <View style={styles.progressTrack}>
           <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
@@ -137,11 +137,11 @@ export default function QuizSession({
       </View>
 
       {feedback === "correct" ? (
-        <Text style={styles.correctText}>Tama!</Text>
+        <Text style={styles.correctText}>Correct!</Text>
       ) : null}
       {feedback === "incorrect" ? (
         <Text style={styles.incorrectText}>
-          Ang tamang sagot ay: {question.answer}
+          The correct answer is: {question.answer}
         </Text>
       ) : null}
     </View>

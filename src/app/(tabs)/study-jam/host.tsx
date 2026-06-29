@@ -1,27 +1,50 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, FontSize, Radius, Spacing } from "../../../constants/theme";
+import { SUBJECTS } from "../../../constants/data";
 import { useMultiplayerStore } from "../../../services/studyJam/multiplayer";
+import { useProfile } from "../../../store/profile";
+import { generateAssessmentQuiz } from "../../../services/sml/quizGenerator";
 
 export default function HostScreen() {
+  const { name: profileName, grade, language } = useProfile();
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(profileName || "");
+  const [subjectId, setSubjectId] = useState<string>(SUBJECTS[0].id);
+  const [questionsCount, setQuestionsCount] = useState(10);
 
-  const { hostRoom, hostIp, players, status, startGame, leaveRoom, error } =
+  const { hostRoom, hostIp, players, status, startGame, setGenerating, leaveRoom, error, settings } =
     useMultiplayerStore();
 
   useEffect(() => {
     if (status === "playing") {
-      router.push("/study-session");
+      router.push("/study-jam-battle");
     }
   }, [status, router]);
 
   const handleHost = async () => {
     if (name.trim()) {
-      await hostRoom(name.trim());
+      await hostRoom(name.trim(), { subjectId, questionsCount });
+    }
+  };
+
+  const handleStartGame = async () => {
+    if (!settings) return;
+    setGenerating();
+    try {
+      const cards = await generateAssessmentQuiz(
+        grade || "Grade 1",
+        [settings.subjectId],
+        settings.questionsCount,
+        language
+      );
+      startGame(cards);
+    } catch (e) {
+      console.error("Failed to generate quiz", e);
+      leaveRoom();
     }
   };
 
@@ -64,12 +87,14 @@ export default function HostScreen() {
             <Pressable
               style={[
                 styles.primaryButton,
-                players.length < 2 && styles.buttonDisabled,
+                (players.length < 2 || status === "generating") && styles.buttonDisabled,
               ]}
-              disabled={players.length < 2}
-              onPress={startGame}
+              disabled={players.length < 2 || status === "generating"}
+              onPress={handleStartGame}
             >
-              <Text style={styles.primaryButtonText}>Start Jam</Text>
+              <Text style={styles.primaryButtonText}>
+                {status === "generating" ? "Generating..." : "Generate & Start Jam"}
+              </Text>
 
               <Ionicons name="play" size={20} color="#fff" />
             </Pressable>
@@ -116,6 +141,54 @@ export default function HostScreen() {
           value={name}
           onChangeText={setName}
         />
+
+        <Text style={styles.label}>Subject</Text>
+        <View style={styles.pickerRow}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {SUBJECTS.map((sub) => (
+              <Pressable
+                key={sub.id}
+                style={[
+                  styles.pickerChip,
+                  subjectId === sub.id && styles.pickerChipActive,
+                ]}
+                onPress={() => setSubjectId(sub.id)}
+              >
+                <Text
+                  style={[
+                    styles.pickerChipText,
+                    subjectId === sub.id && styles.pickerChipTextActive,
+                  ]}
+                >
+                  {sub.label}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+
+        <Text style={styles.label}>Number of Questions</Text>
+        <View style={[styles.pickerRow, { marginBottom: Spacing.xl }]}>
+          {[5, 10, 15, 20].map((count) => (
+            <Pressable
+              key={count}
+              style={[
+                styles.pickerChip,
+                questionsCount === count && styles.pickerChipActive,
+              ]}
+              onPress={() => setQuestionsCount(count)}
+            >
+              <Text
+                style={[
+                  styles.pickerChipText,
+                  questionsCount === count && styles.pickerChipTextActive,
+                ]}
+              >
+                {count}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
 
         <Pressable
           style={[styles.primaryButton, !name.trim() && styles.buttonDisabled]}
@@ -329,5 +402,31 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
+  },
+  pickerRow: {
+    flexDirection: "row",
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+  },
+  pickerChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 10,
+    borderRadius: Radius.full,
+    borderWidth: 1.5,
+    borderColor: Colors.border,
+    backgroundColor: Colors.card,
+    marginRight: Spacing.sm,
+  },
+  pickerChipActive: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  pickerChipText: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.mutedText,
+  },
+  pickerChipTextActive: {
+    color: "#fff",
   },
 });

@@ -20,6 +20,7 @@ interface ProfileState {
   subjects: string[];
   score: number;
   studyJamHistory: StudyJamSession[];
+  lastPromotedAt: string | null;
 
   setLanguage: (l: string) => void;
   setName: (n: string) => void;
@@ -28,6 +29,7 @@ interface ProfileState {
   setScore: (s: number) => void;
   addStudyJamSession: (session: StudyJamSession) => void;
   clearStudyJamHistory: () => void;
+  setLastPromotedAt: (date: string) => void;
   reset: () => void;
 }
 
@@ -38,6 +40,7 @@ const defaults = {
   subjects: [] as string[],
   score: 0,
   studyJamHistory: [] as StudyJamSession[],
+  lastPromotedAt: null as string | null,
 };
 
 export const useProfile = create<ProfileState>()(
@@ -54,6 +57,7 @@ export const useProfile = create<ProfileState>()(
           studyJamHistory: [session, ...state.studyJamHistory].slice(0, 20),
         })),
       clearStudyJamHistory: () => set({ studyJamHistory: [] }),
+      setLastPromotedAt: (lastPromotedAt) => set({ lastPromotedAt }),
 
       toggleSubject: (id) =>
         set((s) => ({

@@ -12,7 +12,6 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import RadarAnimation from "../../../components/study-jam/RadarAnimation";
 import { Colors, FontSize, Radius, Spacing } from "../../../constants/theme";
 import { useProfile } from "../../../store/profile";
 
@@ -22,7 +21,6 @@ import { useProfile } from "../../../store/profile";
  */
 export default function StudyJamScreen() {
   const { studyJamHistory, clearStudyJamHistory } = useProfile();
-  const [showRadar, setShowRadar] = useState(false);
 
   const recentHistory = studyJamHistory.slice(0, 3);
 
@@ -33,23 +31,18 @@ export default function StudyJamScreen() {
 
   const handleFind = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setShowRadar(true);
-  };
-
-  const handleRadarComplete = useCallback(() => {
-    setShowRadar(false);
     router.navigate("/study-jam/find" as any);
-  }, []);
+  };
 
   const handleClearHistory = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
-      "Burahin ang history?",
-      "Mawawala ang listahan ng recent Study Jam sessions.",
+      "Clear History?",
+      "Are you sure you want to delete all Study Jam records?",
       [
-        { text: "Hindi muna", style: "cancel" },
+        { text: "Cancel", style: "cancel" },
         {
-          text: "Burahin",
+          text: "Clear",
           style: "destructive",
           onPress: clearStudyJamHistory,
         },
@@ -67,7 +60,7 @@ export default function StudyJamScreen() {
           <View>
             <Text style={styles.title}>Study Jam</Text>
             <Text style={styles.subtitle}>
-              Makipag-compete sa mga kaklase gamit ang Bluetooth
+              Compete with classmates via Local Network
             </Text>
           </View>
           {studyJamHistory.length > 0 ? (
@@ -112,9 +105,9 @@ export default function StudyJamScreen() {
         {recentHistory.length === 0 ? (
           <View style={styles.emptyCard}>
             <Ionicons name="trophy-outline" size={42} color={Colors.primary} />
-            <Text style={styles.emptyTitle}>Wala pang Study Jam history</Text>
+            <Text style={styles.emptyTitle}>No Study Jam history yet</Text>
             <Text style={styles.emptyText}>
-              Mag-host o sumali sa mock quiz para makita dito ang recent games.
+              Host or join a jam to see your records here!
             </Text>
           </View>
         ) : (
@@ -144,8 +137,6 @@ export default function StudyJamScreen() {
           </View>
         )}
       </ScrollView>
-
-      <RadarAnimation visible={showRadar} onComplete={handleRadarComplete} />
     </SafeAreaView>
   );
 }
