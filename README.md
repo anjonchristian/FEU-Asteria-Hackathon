@@ -3,8 +3,8 @@
 </p>
 <h1 align="center">Kahayag</h1>
 <p align="center">
-  <b>Lightweight, zero-connectivity mobile learning platform for Filipino students.</b><br/>
-  Supports Android and iOS.
+  <b>Lightweight mobile learning platform for Filipino students.</b><br/>
+  Supports Android and iOS via Expo.
 </p>
 
 ---
@@ -13,80 +13,50 @@
 
 ### AI-Powered Study Companion for Filipino Learners
 
-**Project Kahayag** (meaning _light_ or _brightness_) is an offline-first AI learning companion designed for Filipino primary students.
+**Project Kahayag** (meaning _light_ or _brightness_) is an intelligent learning companion designed for Filipino primary students.
 
-It tackles the digital divide by bringing personalized education support directly to mobile devices — with:
-
-- Zero internet dependency
-- Zero cloud costs
-- Zero required data connection
-
-By running a localized **Small Language Model (SLM)** through `llama.rn` and combining it with offline OCR, Kahayag transforms a smartphone into an intelligent study guide available anytime, anywhere.
+It aims to tackle the digital divide by bringing personalized education support directly to mobile devices. For this MVP, we leverage the power of the **Google Gemini API** combined with on-device Text Recognition (OCR) to transform any physical textbook or worksheet into an interactive, bilingual learning experience. 
 
 ---
 
 # ✨ Features
 
-## 🧠 Local AI Tutor
+## 🧠 AI Tutor Powered by Gemini
 
-Powered by `llama.rn`, Kahayag runs a 4-bit quantized Small Language Model directly on the device.
+Kahayag integrates the Google Gemini API to serve as a 24/7 personal tutor.
 
-Features:
-
-- AI-powered explanations
-- Question answering
-- Study hints
-- Practice generation
-- Offline tutoring
+- **Subject-Specific Guardrails:** The tutor strictly restricts its answers to the subject you are currently studying.
+- **Bilingual Support:** While the core app UI remains in English for digital literacy, the AI tutor and quiz generator can communicate in **English, Filipino, or Conversational Taglish** based on the student's preference.
+- **Instant Explanations & Hints:** Get help with difficult problems step-by-step.
 
 ---
 
 ## 📸 Offline Textbook Scanner
 
-Students can scan physical learning materials using built-in OCR.
+Students can scan physical learning materials using built-in, completely offline OCR.
 
-Features:
-
-- Extracts text from images
-- Processes completely offline
-- Supports textbooks, modules, and worksheets
-- No cloud OCR APIs required
-
----
-
-## 🇵🇭 Filipino + English Support
-
-Kahayag supports:
-
-- English
-- Filipino
-- Conversational Taglish
-
-Helping students learn using familiar language.
+- Extracts text from physical textbooks and modules locally on the device using ML Kit.
+- Sends the extracted text to the AI to instantly generate flashcards and quizzes.
 
 ---
 
 ## 🎮 Study Jam Sessions
 
-Using Bluetooth Low Energy (BLE), students can:
+A competitive multiplayer hub designed to make learning fun:
 
-- Join peer learning sessions
-- Challenge classmates
-- Compete in educational quizzes
-- Review together without internet access
+- **Host & Join Mechanics:** Easily host a Study Jam with an auto-filled (but customizable) host name.
+- **Custom Battle Settings:** The host can dynamically configure the number of questions and the specific subject scope before starting the match.
+- **Local Leaderboards:** Track who won recent jams directly on the home screen.
 
 ---
 
-## 📈 Adaptive Learning System
+## 📈 Adaptive Grade Promotion System
 
-Kahayag tracks progress locally.
+Kahayag tracks progress natively using a powerful local storage engine.
 
-The system:
-
-- Records answers
-- Measures topic mastery
-- Adjusts difficulty
-- Builds personalized learning paths
+- **Dynamic Grade Levels:** The system monitors your heatmap (active days), overall mastery percentage, and total quizzes completed.
+- **Automated Level-Ups:** Once you hit specific consistency and mastery milestones, the app automatically notifies you and promotes you to the next Grade Level.
+- **Comprehensive Dashboard:** View your 7-day flame streak, 30-day heatmap, and a fully real-time feed of your most recent activities (quizzes generated, jams played, and chats).
 
 ---
 
@@ -105,205 +75,40 @@ The system:
 
 ---
 
-# Clone Repository
+# Setup & Run
 
+## 1. Clone & Install
 ```bash
 git clone <repository-url>
 cd kahayag
 npm install
 ```
 
----
+## 2. Environment Setup
+Since this app uses the Google Gemini API, you need to provide your API key.
+Create a `.env` file in the root directory:
+```env
+EXPO_PUBLIC_GEMINI_API_KEY=your_gemini_api_key_here
+```
 
-# Running the Application
-
-## Option 1 — Expo Go
-
-Start the development server:
-
+## 3. Run the App
 ```bash
 npm start
 ```
-
-Steps:
-
-1. Open Expo Go
-2. Scan the QR code
-3. Wait for the application to load
-
-### Offline Testing
-
-After the app loads:
-
-```text
-Enable Airplane Mode to test offline functionality.
-```
-
----
-
-## Option 2 — Development Build
-
-Required for native features such as:
-
-- llama.rn
-- OCR
-- Bluetooth Low Energy
-
-### Android
-
-```bash
-npm run android
-```
-
-### iOS
-
-```bash
-npm run ios
-```
-
----
-
-# Available Scripts
-
-| Command                 | Description                 |
-| ----------------------- | --------------------------- |
-| `npm start`             | Start Expo server           |
-| `npm run android`       | Run Android build           |
-| `npm run ios`           | Run iOS build               |
-| `npm run lint`          | Run linter                  |
-| `npm run reset-project` | Reset project configuration |
-
----
-
-# Troubleshooting
-
-Clear Expo cache:
-
-```bash
-npx expo start --clear
-```
-
-Reinstall dependencies:
-
-```bash
-rm -rf node_modules package-lock.json
-npm install
-```
+- **Android / iOS:** Scan the QR code using the **Expo Go** app on your physical device. 
 
 ---
 
 # 🛠 Tech Stack
 
-## AI
+## Core Technology
+- **Framework:** React Native / Expo (Expo Router)
+- **AI Engine:** Google Gemini API (`@google/generative-ai`)
+- **Styling:** React Native StyleSheet / Reanimated
 
-- `llama.rn`
-- Local Small Language Model
-- 4-bit quantization
-
-## Mobile
-
-- React Native
-- Expo
-- Expo Router
-
-## OCR
-
-- `react-native-ml-kit/text-recognition`
-
-## Database
-
-- SQLite
-
-## UI
-
-- NativeWind / TailwindCSS
-- Lucide Icons
-
-## State Management
-
-- Zustand
-
-## Connectivity
-
-- Bluetooth Low Energy (BLE)
-
----
-
-# 🗄 Database Architecture
-
-Kahayag uses SQLite for fully offline storage.
-
-## Student Records
-
-```sql
-students
-```
-
-Stores:
-
-- Student profile
-- Grade level
-- XP
-- Learning streaks
-
----
-
-## Academic Structure
-
-```sql
-subjects
-topics
-student_topic_mastery
-```
-
-Handles:
-
-- Subjects
-- Topics
-- Mastery tracking
-- Learning progress
-
----
-
-## AI Learning History
-
-```sql
-session_history
-```
-
-Stores:
-
-- Generated questions
-- Student answers
-- AI feedback
-- Review history
-
----
-
-## BLE Study System
-
-```sql
-bluetooth_peers
-challenges
-```
-
-Supports:
-
-- Peer discovery
-- Study sessions
-- Offline competitions
-
----
-
-# 🤖 AI Usage
-
-Different LLM tools were used during planning and MVP development.
-
-The final application runs AI locally on-device to prioritize:
-
-- Privacy
-- Accessibility
-- Offline learning
+## Local Device Integration
+- **Text Recognition:** `@react-native-ml-kit/text-recognition` (Offline OCR)
+- **State Management & Storage:** Zustand + AsyncStorage (Fully persistent offline profiles, activity heatmaps, and study vaults).
 
 ---
 
