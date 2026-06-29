@@ -40,6 +40,8 @@ interface OcrCaptureViewProps {
   onSaveForStudy: () => void;
   onGenerateQuiz: () => void;
   onReset: () => void;
+  onClose?: () => void;
+  onTextCaptured?: (text: string) => void;
 }
 
 export function OcrCaptureView({
@@ -54,6 +56,8 @@ export function OcrCaptureView({
   onSaveForStudy,
   onGenerateQuiz,
   onReset,
+  onClose,
+  onTextCaptured,
 }: OcrCaptureViewProps) {
   const { language } = useProfile();
   const strings = getOcrStrings(language);
@@ -77,6 +81,17 @@ export function OcrCaptureView({
     }
   }, [scanState, scanY]);
 
+  // Auto-capture text if in straight text-capture mode
+  useEffect(() => {
+    if (
+      onTextCaptured &&
+      scanState === "result" &&
+      pipelineResult?.result.cleanedText
+    ) {
+      onTextCaptured(pipelineResult.result.cleanedText);
+    }
+  }, [scanState, pipelineResult, onTextCaptured]);
+
   if (!permission) return <View style={styles.safe} />;
 
   if (!permission.granted) {
@@ -95,7 +110,9 @@ export function OcrCaptureView({
   }
 
   const isBusy = scanState === "processing";
-  const showResult = scanState === "result" && pipelineResult;
+  // Hide the result overlay entirely if we are using onTextCaptured (it auto-closes instead)
+  const showResult =
+    scanState === "result" && pipelineResult && !onTextCaptured;
   const showError = scanState === "error" && errorMessage;
 
   return (
@@ -107,7 +124,11 @@ export function OcrCaptureView({
       />
       <View style={styles.overlay}>
         <View style={styles.header}>
-          <View style={styles.headerSpacer} />
+          {onClose && (
+            <Pressable onPress={onClose} style={styles.headerSpacer}>
+              <Ionicons name="close" size={22} color="#fff" />
+            </Pressable>
+          )}
           <Text style={styles.headerTitle}>{strings.screenTitle}</Text>
           <View style={styles.headerSpacer} />
         </View>

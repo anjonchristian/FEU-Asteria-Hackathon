@@ -32,6 +32,10 @@ export default function RootLayout() {
             name="quiz-player"
             options={{ animation: "slide_from_bottom" }}
           />
+          <Stack.Screen
+            name="create-deck"
+            options={{ animation: "slide_from_bottom" }}
+          />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>
