@@ -13,6 +13,7 @@ export interface ChatSession {
   scannedText: string;
   timestamp: string;
   messages: Message[];
+  subjectId?: string; // Add this field
 }
 
 const STORAGE_KEY = "KAHAYAG_STUDY_HISTORY";
@@ -20,21 +21,40 @@ const STORAGE_KEY = "KAHAYAG_STUDY_HISTORY";
 export async function saveStudySession(
   scannedText: string,
   messages: Message[],
+  subjectId?: string, // Add this parameter
 ): Promise<ChatSession> {
   try {
     const rawSessions = await AsyncStorage.getItem(STORAGE_KEY);
     const sessions: ChatSession[] = rawSessions ? JSON.parse(rawSessions) : [];
 
-    // Create a child-friendly title from the first few words of scanned text
-    const cleanTextSnippet = scannedText
-      .replace(/[\r\n\t]+/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    let title = cleanTextSnippet.split(" ").slice(0, 4).join(" ");
-    if (title.length < cleanTextSnippet.length) {
-      title += "...";
+    // Derive the title from the first user message (the topic they discussed)
+    const firstUserMsg = messages.find((m) => m.role === "user");
+    let title: string;
+
+    if (firstUserMsg) {
+      const cleanTopic = firstUserMsg.content
+        .replace(/[\r\n\t]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      // Use up to ~60 chars of the first user message as the title
+      if (cleanTopic.length > 60) {
+        title = cleanTopic.substring(0, 57) + "...";
+      } else {
+        title = cleanTopic;
+      }
+    } else {
+      // Fallback: use scanned text snippet
+      const cleanTextSnippet = scannedText
+        .replace(/[\r\n\t]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      title = cleanTextSnippet.split(" ").slice(0, 6).join(" ");
+      if (title.length < cleanTextSnippet.length) {
+        title += "...";
+      }
     }
-    if (!title || title.trim() === "...") {
+
+    if (!title || title.trim() === "..." || title.trim() === "") {
       title = "Aralin - " + new Date().toLocaleDateString();
     }
 
@@ -43,11 +63,11 @@ export async function saveStudySession(
       title,
       scannedText,
       timestamp: new Date().toISOString(),
-      // Filter out system messages from history to keep it clean and child-readable
       messages: messages.filter((m) => m.role !== "system"),
+      subjectId, // Tag the session
     };
 
-    sessions.unshift(newSession); // Most recent first
+    sessions.unshift(newSession);
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(sessions));
     return newSession;
   } catch (error) {

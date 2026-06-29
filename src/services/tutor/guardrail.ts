@@ -1,41 +1,27 @@
 /**
- * Socratic Guardrail — Post-processing filter that prevents direct answers
- * from reaching the student. This is the safety net when the LLM fails
- * to follow the Socratic prompt instructions.
+ * Tutor Guardrail — Post-processing filter that catches cases where the
+ * LLM gives away a direct answer to a specific problem/exercise.
+ * Conceptual explanations and teaching are allowed and encouraged.
  */
 
-// Patterns that indicate the AI gave a direct answer
+// Patterns that indicate the AI gave a direct answer to a specific problem
+// (NOT conceptual explanations — those are allowed and encouraged)
 const DIRECT_ANSWER_PATTERNS = [
-  // Filipino patterns
+  // Filipino patterns — only when explicitly stating "the answer is X"
   /ang\s+(tamang\s+)?sagot\s+(ay|diyan|dito)\s/i,
   /kaya\s+ang\s+sagot\s+(ay|diyan)\s/i,
-  /ang\s+resulta\s+(ay|diyan)\s/i,
   /tamang\s+sagot\s+(ay|diyan)\s/i,
   /ang\s+final\s+answer\s+(ay|is)\s/i,
   /so\s+ang\s+sagot\s+(ay|is)\s/i,
-  /yun\s+ang\s+tama/i,
   /ito\s+ang\s+sagot/i,
-  /dapat\s+ay\s+\d+/i,
   /exactly\s+ang\s+sagot/i,
 
-  // English patterns
-  /the\s+(correct\s+)?answer\s+is\s/i,
-  /the\s+solution\s+is\s/i,
+  // English patterns — only explicit answer-giving
+  /the\s+(correct\s+)?answer\s+is\s+\d/i,
   /the\s+final\s+answer\s+is\s/i,
-  /it\s+equals\s+\d+/i,
-  /the\s+result\s+is\s+\d+/i,
-  /therefore\s+the\s+answer/i,
-  /we\s+can\s+conclude\s+that/i,
-  /in\s+conclusion/i,
-  /so\s+the\s+answer\s+is\s/i,
-  /this\s+means\s+that\s+the\s+answer\s+is\s/i,
+  /so\s+the\s+answer\s+is\s+\d/i,
 
-  // Mathematical giveaways
-  /=\s*\d+\s*$/m,
-  /^\d+\s*$/m,
-
-  // Declarative finality
-  /^(oo|yes|tama|correct)[,.\s]*$/i,
+  // Declarative finality (confirming a numeric answer)
   /^(iyan|yun|yon)\s+(ang|na)\s+(sagot|tama)/i,
 ];
 
@@ -286,17 +272,17 @@ function generateSocraticRedirect(
   const wasDemanding = isStudentDemandingAnswer(studentMessage);
 
   if (wasDemanding) {
-    return `Alam kong gusto mo nang malaman ang sagot, pero mas matututo ka kapag ikaw mismo ang naka-discover nito! ${getTextbookCue(textbookContext)}. Ano sa palagay mo ang unang clue na makikita mo? Kaya mo iyan, kaibigan! 😊`;
+    return `Sige, tutulungan kita! ${getTextbookCue(textbookContext)}. Subukan muna nating i-break down ang problem — ano sa tingin mo ang unang step? Kaya mo 'yan! 💪`;
   }
 
   const topicHint = getTextbookCue(textbookContext);
 
-  // Default Socratic redirects (rotate for variety)
+  // Helpful redirects that give partial guidance (rotate for variety)
   const redirects = [
-    `Hindi ko puwedeng ibigay ang direktang sagot, pero tutulungan kitang mahanap ito! ${topicHint} Ano sa palagay mo ang ibig sabihin ng unang bahagi?`,
-    `Subukan nating pag-isipan ito nang magkasama. ${topicHint} Ano ang importanteng detail na napansin mo?`,
-    `Ang pinakamagandang paraan para matuto ay ikaw mismo ang tumuklas ng sagot. ${topicHint} Ano ang una mong naiisip kapag binasa mo ulit?`,
-    `Bago natin makuha ang sagot, balikan muna natin ang basics. ${topicHint} May clue ka bang nakita na puwedeng gabayan tayo?`,
+    `Malapit ka na! ${topicHint} — subukan mong isipin ang unang step, at tutulungan kita sa next. 😊`,
+    `Magandang tanong! ${topicHint} Ano sa tingin mo ang pinaka-importanteng detail dito? Mag-start tayo doon! ✨`,
+    `Okay, i-break down natin ito step by step. ${topicHint} Ano ang unang bagay na mapapansin mo?`,
+    `Tutulungan kita! ${topicHint} Try mo muna — kahit guess lang, okay lang mag-mali! 😊`,
   ];
 
   const randomIndex = Math.floor(Math.random() * redirects.length);

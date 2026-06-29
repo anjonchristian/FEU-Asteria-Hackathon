@@ -31,8 +31,8 @@ export default function Scoreboard({
 }: ScoreboardProps) {
   const userWon = userScore > opponentScore;
   const ranking = [
-    { name: isHost ? "Ikaw" : opponentName, score: isHost ? userScore : opponentScore },
-    { name: isHost ? opponentName : "Ikaw", score: isHost ? opponentScore : userScore },
+    { name: isHost ? "You" : opponentName, score: isHost ? userScore : opponentScore },
+    { name: isHost ? opponentName : "You", score: isHost ? opponentScore : userScore },
     ...otherParticipants,
   ].sort((a, b) => b.score - a.score);
 
@@ -54,15 +54,15 @@ export default function Scoreboard({
         </View>
         <Text style={styles.title}>
           {userWon
-            ? `Panalo ka! Natalo mo si ${opponentName}!`
-            : `Mabuti ang laban! Si ${opponentName} ang nanalo ngayon.`}
+            ? `You won! You beat ${opponentName}!`
+            : `Good match! ${opponentName} won this time.`}
         </Text>
       </View>
 
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Score comparison</Text>
         <View style={styles.scoreRow}>
-          <Text style={styles.scoreName}>Ikaw</Text>
+          <Text style={styles.scoreName}>You</Text>
           <Text style={styles.scoreText}>
             {userScore}/{totalQuestions}
           </Text>
@@ -96,7 +96,7 @@ export default function Scoreboard({
       ) : null}
 
       <View style={styles.card}>
-        <Text style={styles.cardTitle}>Breakdown ng sagot</Text>
+        <Text style={styles.cardTitle}>Answer Breakdown</Text>
         <View style={styles.breakdownGrid}>
           {userAnswers.map((correct, index) => (
             <View
@@ -122,7 +122,7 @@ export default function Scoreboard({
         style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
       >
         <Ionicons name="arrow-back" size={20} color="#fff" />
-        <Text style={styles.backText}>Bumalik sa Study Jam</Text>
+        <Text style={styles.backText}>Back to Study Jam</Text>
       </Pressable>
     </ScrollView>
   );

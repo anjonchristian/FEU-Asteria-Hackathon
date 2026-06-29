@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { useLocalSearchParams } from "expo-router"; // ADD THIS
 import CropView from "../components/CropView";
 import { OcrCaptureView } from "../components/ocr/OcrCaptureView";
 import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
@@ -51,6 +52,8 @@ export default function CreateDeckScreen() {
 
   const activeText = source === "paste" ? pastedText : extractedText;
   const canGenerate = activeText.trim().length > 50 && !isGenerating;
+
+  const { subjectId } = useLocalSearchParams<{ subjectId?: string }>();
 
   // ── PDF path ────────────────────────────────────────────────────────────────
   const handlePickPdf = async () => {
@@ -131,7 +134,7 @@ export default function CreateDeckScreen() {
       const deck = await generateQuizFromText(
         null,
         `${difficultyInstruction}\n\n${activeText}`,
-        subjects.length > 0 ? subjects[0] : "general",
+        subjectId || (subjects.length > 0 ? subjects[0] : "general"), // UPDATE THIS LINE
         questionCount,
       );
 

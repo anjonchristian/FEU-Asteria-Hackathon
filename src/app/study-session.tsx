@@ -1,31 +1,32 @@
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    KeyboardAvoidingView,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
+  ActivityIndicator,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
 import { useLocalTutor } from "../hooks/useLocalTutor";
 import { saveStudySession } from "../services/tutor/historyService";
+import { useActivityStore } from "../store/activity";
 
 export default function StudySessionScreen() {
+  const { subjectId } = useLocalSearchParams<{ subjectId?: string }>();
   const [inputVal, setInputVal] = useState("");
-  const [showRefText, setShowRefText] = useState(false);
-
   const scrollViewRef = useRef<ScrollView>(null);
 
-  const { messages, isInitializing, isThinking, sendMessage, referenceText } =
-    useLocalTutor();
+  // Pass the subjectId to our new real Gemini tutor
+  const { messages, isInitializing, isThinking, sendMessage } =
+    useLocalTutor(subjectId);
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -43,25 +44,29 @@ export default function StudySessionScreen() {
 
   const handleExitSession = () => {
     Alert.alert(
-      "Tapos ka na ba? 🌟",
-      "Gusto mo na bang tapusin ang ating pag-aaral ngayon? Ma-save ang ating chat sa iyong profile!",
+      "Are you done?",
+      "Do you want to end our study session now? I will save our chat to your profile!",
       [
+        { text: "Continue", style: "cancel" },
         {
-          text: "Ipagpatuloy pa 📝",
-          style: "cancel",
-        },
-        {
-          text: "Oo, Tapos Na! 🎉",
+          text: "Yes, I'm Done!",
           style: "destructive",
           onPress: async () => {
             try {
-              if (messages.length > 0) {
-                await saveStudySession(referenceText, messages);
+              if (messages.length > 1) {
+                // Save the session without reference text, but pass the subjectId
+                await saveStudySession(
+                  "Direct Tutor Chat",
+                  messages,
+                  subjectId,
+                );
+                // Record daily activity for streak/heatmap tracking
+                useActivityStore.getState().recordActivity();
               }
             } catch (err) {
               console.error("[StudySession] Error saving history:", err);
             } finally {
-              router.replace("/(tabs)");
+              router.back();
             }
           },
         },
@@ -74,68 +79,25 @@ export default function StudySessionScreen() {
       <View style={styles.header}>
         <Pressable onPress={handleExitSession} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={Colors.primary} />
-          <Text style={styles.backBtnText}>Bumalik</Text>
+          <Text style={styles.backBtnText}>Back</Text>
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          Study Session
+          Teacher Kahayag
         </Text>
         <Pressable onPress={handleExitSession} style={styles.exitBtn}>
-          <Text style={styles.exitBtnText}>Tapos Na 🎉</Text>
+          <Text style={styles.exitBtnText}>Done</Text>
         </Pressable>
       </View>
 
-      <View style={styles.infoBar}>
-        <Text style={styles.infoText}>
-          Mock water cycle tutor lang ito. I-scan muna ang water cycle page,
-          tapos mag-chat ka sa AI tutor.
-        </Text>
-      </View>
-
-      {referenceText ? (
-        <View style={styles.refCardWrap}>
-          <Pressable
-            onPress={() => setShowRefText(!showRefText)}
-            style={styles.refHeader}
-          >
-            <Ionicons
-              name={showRefText ? "book" : "book-outline"}
-              size={18}
-              color={Colors.primary}
-            />
-            <Text style={styles.refHeaderText}>
-              {showRefText
-                ? "Itago ang Binabasang Teksto 📖"
-                : "Tignan ang Binabasang Teksto 📖"}
-            </Text>
-            <Ionicons
-              name={showRefText ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={Colors.primary}
-            />
-          </Pressable>
-          {showRefText && (
-            <ScrollView style={styles.refScroll} nestedScrollEnabled>
-              <Text style={styles.refText}>{referenceText}</Text>
-            </ScrollView>
-          )}
-        </View>
-      ) : (
-        <View style={styles.refEmptyCard}>
-          <Ionicons name="scan-outline" size={18} color={Colors.primary} />
-          <Text style={styles.refEmptyText}>
-            Wala pang OCR text. Mag-scan ng water cycle page para magsimula ang
-            mock tutor.
-          </Text>
-        </View>
-      )}
-
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 10 : 0}
+      >
         {isInitializing ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color={Colors.primary} />
-            <Text style={styles.loaderText}>
-              Inihahanda ang mock tutor... 🧠
-            </Text>
+            <Text style={styles.loaderText}>Connecting to Teacher...</Text>
           </View>
         ) : (
           <ScrollView
@@ -156,7 +118,7 @@ export default function StudySessionScreen() {
                 >
                   {isAi && (
                     <View style={styles.avatarBox}>
-                      <Text style={styles.avatarText}>🌱</Text>
+                      <Text style={styles.avatarText}>👩‍🏫</Text>
                     </View>
                   )}
                   <View
@@ -165,9 +127,6 @@ export default function StudySessionScreen() {
                       isAi ? styles.bubbleAi : styles.bubbleUser,
                     ]}
                   >
-                    {isAi && (
-                      <Text style={styles.teacherName}>Teacher Kahayag</Text>
-                    )}
                     <Text
                       style={[
                         styles.messageText,
@@ -180,11 +139,10 @@ export default function StudySessionScreen() {
                 </View>
               );
             })}
-
             {isThinking && (
               <View style={[styles.messageRow, styles.rowAi]}>
                 <View style={styles.avatarBox}>
-                  <Text style={styles.avatarText}>🧠</Text>
+                  <Text style={styles.avatarText}>👩‍🏫</Text>
                 </View>
                 <View
                   style={[
@@ -193,7 +151,6 @@ export default function StudySessionScreen() {
                     styles.thinkingBubble,
                   ]}
                 >
-                  <Text style={styles.teacherName}>Teacher Kahayag</Text>
                   <View style={styles.thinkingRow}>
                     <ActivityIndicator
                       size="small"
@@ -201,7 +158,7 @@ export default function StudySessionScreen() {
                       style={{ marginRight: 6 }}
                     />
                     <Text style={styles.thinkingText}>
-                      Nag-iisip si Teacher...
+                      Teacher is typing...
                     </Text>
                   </View>
                 </View>
@@ -215,7 +172,7 @@ export default function StudySessionScreen() {
             style={styles.input}
             value={inputVal}
             onChangeText={setInputVal}
-            placeholder="Sumulat ng mensahe..."
+            placeholder="Type your question..."
             placeholderTextColor={Colors.mutedText}
             multiline
             maxLength={500}
@@ -258,11 +215,7 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "center",
   },
-  backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingRight: 12,
-  },
+  backBtn: { flexDirection: "row", alignItems: "center", paddingRight: 12 },
   backBtnText: {
     fontSize: FontSize.sm,
     color: Colors.primary,
@@ -274,93 +227,32 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: Radius.full,
   },
-  exitBtnText: {
-    color: "#fff",
-    fontSize: FontSize.xs + 1,
-    fontWeight: "800",
-  },
-  infoBar: {
-    backgroundColor: "rgba(40,148,127,0.08)",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-  },
-  infoText: {
-    color: Colors.forest,
-    fontSize: FontSize.xs + 1,
-    lineHeight: 18,
-    fontWeight: "700",
-  },
-  refCardWrap: {
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  refHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
-  },
-  refHeaderText: {
-    flex: 1,
-    fontSize: FontSize.xs + 1,
-    fontWeight: "800",
-    color: Colors.primary,
-    marginLeft: 6,
-  },
-  refScroll: {
-    maxHeight: 120,
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  refText: {
-    fontSize: FontSize.xs + 1,
-    color: Colors.mutedText,
-    lineHeight: 18,
-    fontStyle: "italic",
-    backgroundColor: Colors.background,
-    padding: Spacing.sm,
-    borderRadius: Radius.sm,
-  },
-  refEmptyCard: {
-    backgroundColor: "#fff",
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  refEmptyText: {
-    flex: 1,
-    color: Colors.mutedText,
-    fontSize: FontSize.xs + 1,
-    lineHeight: 18,
-    fontWeight: "700",
-  },
+  exitBtnText: { color: "#fff", fontSize: FontSize.xs + 1, fontWeight: "800" },
   chatScroll: { flex: 1 },
-  chatContent: { padding: Spacing.md, gap: Spacing.md },
-  messageRow: { flexDirection: "row", gap: Spacing.sm, maxWidth: "80%" },
+  chatContent: {
+    padding: Spacing.md,
+    gap: Spacing.md,
+    paddingBottom: Spacing.xxl,
+  },
+  messageRow: { flexDirection: "row", gap: Spacing.sm, maxWidth: "85%" },
   rowAi: { alignSelf: "flex-start" },
   rowUser: { alignSelf: "flex-end", justifyContent: "flex-end" },
   avatarBox: {
     width: 36,
     height: 36,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.muted,
+    borderRadius: Radius.full,
+    backgroundColor: "#E5F5EE",
     alignItems: "center",
     justifyContent: "center",
     alignSelf: "flex-end",
+    borderWidth: 1,
+    borderColor: Colors.primary,
   },
   avatarText: { fontSize: 20 },
   bubble: {
-    borderRadius: Radius.md,
+    borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    paddingVertical: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -369,22 +261,13 @@ const styles = StyleSheet.create({
   },
   bubbleAi: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: Radius.sm,
+    borderTopLeftRadius: 4,
     borderColor: Colors.border,
     borderWidth: 1,
   },
-  bubbleUser: {
-    backgroundColor: Colors.primary,
-    borderBottomRightRadius: Radius.sm,
-  },
-  teacherName: {
-    fontSize: FontSize.xs - 1,
-    fontWeight: "900",
-    color: Colors.teal,
-    marginBottom: 4,
-  },
-  messageText: { fontSize: FontSize.sm + 1, lineHeight: 22 },
-  textAi: { color: Colors.forest, fontWeight: "500" },
+  bubbleUser: { backgroundColor: Colors.primary, borderBottomRightRadius: 4 },
+  messageText: { fontSize: FontSize.sm + 1, lineHeight: 24 },
+  textAi: { color: Colors.forest, fontWeight: "600" },
   textUser: { color: "#fff", fontWeight: "700" },
   loaderContainer: {
     flex: 1,
@@ -397,10 +280,10 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: Colors.mutedText,
   },
-  thinkingBubble: { opacity: 0.95 },
+  thinkingBubble: { opacity: 0.95, paddingVertical: 14 },
   thinkingRow: { flexDirection: "row", alignItems: "center" },
   thinkingText: {
-    fontSize: FontSize.xs + 1,
+    fontSize: FontSize.sm,
     color: Colors.mutedText,
     fontStyle: "italic",
     fontWeight: "700",
@@ -419,7 +302,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
     borderRadius: Radius.lg,
     paddingHorizontal: Spacing.md,
-    maxHeight: 100,
+    paddingTop: 14,
+    paddingBottom: 14,
+    maxHeight: 120,
     fontSize: FontSize.md,
     color: Colors.forest,
     fontWeight: "600",
@@ -427,9 +312,9 @@ const styles = StyleSheet.create({
     borderColor: "rgba(40,148,127,0.1)",
   },
   sendBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     backgroundColor: Colors.primary,
     alignItems: "center",
     justifyContent: "center",

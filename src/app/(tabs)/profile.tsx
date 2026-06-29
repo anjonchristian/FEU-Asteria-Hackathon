@@ -18,10 +18,16 @@ import {
   getStudySessions,
   type ChatSession,
 } from "../../services/tutor/historyService";
+import { useActivityStore } from "../../store/activity";
 import { useProfile } from "../../store/profile";
+import { useVaultStore } from "../../store/vault";
 
 export default function ProfileScreen() {
   const { name, grade, score, reset } = useProfile();
+  const streak = useActivityStore((s) => s.getStreak());
+  const completedQuizzes = useVaultStore(
+    (s) => s.decks.filter((d) => d.lastScore !== undefined).length,
+  );
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(
     null,
@@ -50,6 +56,7 @@ export default function ProfileScreen() {
       async () => {
         reset();
         await clearStudyHistory();
+        useActivityStore.getState().clearActivity();
         setSessions([]);
         router.replace("/");
       },
@@ -117,8 +124,8 @@ export default function ProfileScreen() {
           <View style={styles.statsRow}>
             {[
               { label: "Assessment", value: `${score}/10` },
-              { label: "Streak", value: "7 days" },
-              { label: "Badges", value: "3" },
+              { label: "Streak", value: `${streak} ${streak === 1 ? "day" : "days"}` },
+              { label: "Quizzes", value: `${completedQuizzes}` },
             ].map((stat) => (
               <View key={stat.label} style={styles.statBox}>
                 <Text style={styles.statValue}>{stat.value}</Text>
@@ -141,7 +148,7 @@ export default function ProfileScreen() {
             </View>
             {sessions.length > 0 && (
               <Pressable onPress={handleClearHistory} style={styles.clearBtn}>
-                <Text style={styles.clearText}>I-clear</Text>
+                <Text style={styles.clearText}>Clear</Text>
               </Pressable>
             )}
           </View>
@@ -149,15 +156,13 @@ export default function ProfileScreen() {
           {sessions.length === 0 ? (
             <View style={styles.emptyCard}>
               <Ionicons
-                name="book-outline"
-                size={48}
-                color={Colors.mutedText}
-                style={{ opacity: 0.5 }}
+                name="time-outline"
+                size={42}
+                color={Colors.primary}
               />
-              <Text style={styles.emptyTitle}>No saved studies yet.</Text>
+              <Text style={styles.emptyTitle}>No Activity Yet</Text>
               <Text style={styles.emptySub}>
-                Scan a book or worksheet using a scan tab to chat with Teacher
-                Kahayag! 📖
+                Your study history will appear here once you start learning.
               </Text>
             </View>
           ) : (
@@ -244,7 +249,7 @@ export default function ProfileScreen() {
             <ScrollView contentContainerStyle={styles.modalScroll}>
               {/* Reference Text Panel */}
               <View style={styles.modalRefBox}>
-                <Text style={styles.modalRefTitle}>Na-scan na Teksto 📖</Text>
+                <Text style={styles.modalRefTitle}>Scanned Text 📖</Text>
                 <Text style={styles.modalRefText}>
                   {selectedSession.scannedText}
                 </Text>
@@ -252,7 +257,7 @@ export default function ProfileScreen() {
 
               {/* Chat Transcript Panel */}
               <Text style={styles.transcriptTitle}>
-                Usapan Ninyo ni Teacher Kahayag 💬
+                Conversation with Teacher Kahayag 💬
               </Text>
 
               <View style={styles.transcriptList}>

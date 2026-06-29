@@ -1,7 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,38 +16,112 @@ import Animated, { FadeInDown } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { SUBJECTS } from "../../constants/data";
 import { Colors, FontSize, Radius, Spacing } from "../../constants/theme";
+import { generateAssessmentQuiz } from "../../services/sml/quizGenerator";
+import { getStudySessions } from "../../services/tutor/historyService";
+import { useActivityStore } from "../../store/activity";
 import { useProfile } from "../../store/profile";
+import { useVaultStore, type Deck } from "../../store/vault";
 
-const RECENT = [
-  {
-    label: "Quick Assessment",
-    score: "scored",
-    time: "Just now",
-    color: Colors.primary,
-  },
-  {
-    label: "Science Facts",
-    score: "5/5",
-    time: "Yesterday",
-    color: Colors.green,
-  },
-  {
-    label: "Reading Comp.",
-    score: "7/10",
-    time: "2 days ago",
-    color: Colors.teal,
-  },
-];
+interface RecentItem {
+  label: string;
+  detail: string;
+  time: string;
+  color: string;
+  type: "session" | "quiz";
+}
 
 export default function HomeScreen() {
   const { name, grade, score, subjects } = useProfile();
+  const { decks, addDeck } = useVaultStore();
+  const streak = useActivityStore((s) => s.getStreak());
   const router = useRouter();
+
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+  const [isGeneratingChallenge, setIsGeneratingChallenge] = useState(false);
 
   const mySubjects = [...SUBJECTS].filter((s) => subjects.includes(s.id));
   const shown =
     mySubjects.length > 0 ? mySubjects.slice(0, 4) : [...SUBJECTS].slice(0, 4);
 
   const assessScore = `${score}/10`;
+
+  // Load real recent activity on focus
+  useFocusEffect(
+    useCallback(() => {
+      async function loadRecent() {
+        try {
+          const sessions = await getStudySessions();
+          const items: RecentItem[] = [];
+
+          // Add recent study sessions
+          for (const session of sessions.slice(0, 5)) {
+            items.push({
+              label: session.title,
+              detail: `${session.messages.length} messages`,
+              time: formatTimeAgo(session.timestamp),
+              color: Colors.primary,
+              type: "session",
+            });
+          }
+
+          // Add recent quiz completions from vault
+          const scoredDecks = decks
+            .filter((d) => d.lastScore !== undefined)
+            .slice(0, 5);
+          for (const deck of scoredDecks) {
+            items.push({
+              label: deck.title,
+              detail: `${deck.lastScore}/${deck.cards.length}`,
+              time: formatTimeAgo(deck.createdAt),
+              color: Colors.green,
+              type: "quiz",
+            });
+          }
+
+          // Sort by time (most recent first) and take top 5
+          items.sort(
+            (a, b) =>
+              getTimestamp(b.time).getTime() - getTimestamp(a.time).getTime(),
+          );
+          setRecentItems(items.slice(0, 5));
+        } catch (err) {
+          console.error("[Home] Error loading recent activity:", err);
+        }
+      }
+      loadRecent();
+    }, [decks]),
+  );
+
+  // Today's Challenge: generate a quick quiz for a random user subject
+  const handleTodaysChallenge = async () => {
+    if (isGeneratingChallenge) return;
+    setIsGeneratingChallenge(true);
+    try {
+      // Pick a random subject from user's subjects, or default
+      const challengeSubjects =
+        mySubjects.length > 0 ? mySubjects : [...SUBJECTS].slice(0, 4);
+      const randomSubject =
+        challengeSubjects[Math.floor(Math.random() * challengeSubjects.length)];
+
+      const cards = await generateAssessmentQuiz(grade, [randomSubject.id], 5);
+
+      const newDeck: Deck = {
+        id: `challenge-${Date.now()}`,
+        title: `Daily Challenge: ${randomSubject.label}`,
+        subjectId: randomSubject.id,
+        createdAt: new Date().toISOString(),
+        cards,
+      };
+
+      addDeck(newDeck);
+      router.push({ pathname: "/quiz-player", params: { deckId: newDeck.id } });
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Error", "Could not generate challenge. Check your connection.");
+    } finally {
+      setIsGeneratingChallenge(false);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top"]}>
@@ -61,13 +138,13 @@ export default function HomeScreen() {
         >
           <View style={styles.heroTop}>
             <View>
-              <Text style={styles.greeting}>Good morning ✨</Text>
+              <Text style={styles.greeting}>{getGreeting()} ✨</Text>
               <Text style={styles.heroName}>{name || "Learner"}!</Text>
             </View>
             <View style={styles.heroRight}>
               <View style={styles.streakBadge}>
                 <Ionicons name="flame" size={15} color={Colors.yellow} />
-                <Text style={styles.streakText}>7</Text>
+                <Text style={styles.streakText}>{streak}</Text>
               </View>
               <TouchableOpacity onPress={() => router.navigate("/profile")}>
                 <View style={styles.avatarBox}>
@@ -94,9 +171,11 @@ export default function HomeScreen() {
         {/* Today's challenge */}
         <View style={styles.section}>
           <Pressable
+            onPress={handleTodaysChallenge}
+            disabled={isGeneratingChallenge}
             style={({ pressed }) => [
               styles.challengeCard,
-              pressed && styles.pressed,
+              (pressed || isGeneratingChallenge) && styles.pressed,
             ]}
           >
             <LinearGradient
@@ -106,12 +185,18 @@ export default function HomeScreen() {
               style={styles.challengeGradient}
             >
               <View style={styles.challengeIcon}>
-                <Ionicons name="sparkles" size={24} color={Colors.forest} />
+                {isGeneratingChallenge ? (
+                  <ActivityIndicator size="small" color={Colors.forest} />
+                ) : (
+                  <Ionicons name="sparkles" size={24} color={Colors.forest} />
+                )}
               </View>
               <View style={styles.challengeText}>
                 <Text style={styles.challengeTitle}>Today's Challenge</Text>
                 <Text style={styles.challengeSub}>
-                  Complete 3 problems to earn a badge
+                  {isGeneratingChallenge
+                    ? "Generating your quiz..."
+                    : "Tap to start a 5-question quiz!"}
                 </Text>
               </View>
               <Ionicons
@@ -149,7 +234,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>My Subjects</Text>
-            <Pressable>
+            <Pressable onPress={() => router.push("/all-subjects" as never)}>
               <Text style={styles.seeAll}>See all</Text>
             </Pressable>
           </View>
@@ -166,6 +251,12 @@ export default function HomeScreen() {
                     { backgroundColor: sub.bg },
                     pressed && styles.pressed,
                   ]}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/subject/[id]",
+                      params: { id: sub.id },
+                    } as never)
+                  }
                 >
                   <View
                     style={[
@@ -188,30 +279,91 @@ export default function HomeScreen() {
           <Text style={[styles.sectionTitle, { marginBottom: Spacing.sm }]}>
             Recent Activity
           </Text>
-          <View style={styles.activityCard}>
-            {RECENT.map((item, i) => (
-              <View
-                key={i}
-                style={[
-                  styles.activityRow,
-                  i < RECENT.length - 1 && styles.activityBorder,
-                ]}
-              >
+          {recentItems.length === 0 ? (
+            <View style={styles.emptyActivity}>
+              <Ionicons
+                name="time-outline"
+                size={32}
+                color={Colors.mutedText}
+                style={{ opacity: 0.5 }}
+              />
+              <Text style={styles.emptyActivityText}>
+                No activity yet. Start a tutor session or take a quiz!
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.activityCard}>
+              {recentItems.map((item, i) => (
                 <View
-                  style={[styles.activityBar, { backgroundColor: item.color }]}
-                />
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityLabel}>{item.label}</Text>
-                  <Text style={styles.activityTime}>{item.time}</Text>
+                  key={`${item.type}-${i}`}
+                  style={[
+                    styles.activityRow,
+                    i < recentItems.length - 1 && styles.activityBorder,
+                  ]}
+                >
+                  <View
+                    style={[styles.activityBar, { backgroundColor: item.color }]}
+                  />
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityLabel} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                    <Text style={styles.activityTime}>{item.time}</Text>
+                  </View>
+                  <Text style={styles.activityScore}>{item.detail}</Text>
                 </View>
-                <Text style={styles.activityScore}>{item.score}</Text>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
   );
+}
+
+/** Returns a greeting based on the current time of day */
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+/** Simple relative time formatting */
+function formatTimeAgo(isoString: string): string {
+  try {
+    const then = new Date(isoString);
+    const now = new Date();
+    const diffMs = now.getTime() - then.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return then.toLocaleDateString();
+  } catch {
+    return isoString;
+  }
+}
+
+/** Helper to convert our time-ago strings back to a sortable Date (rough) */
+function getTimestamp(timeAgo: string): Date {
+  // This is used for sorting — we just need relative ordering
+  const now = new Date();
+  if (timeAgo === "Just now") return now;
+  const mMatch = timeAgo.match(/^(\d+)m ago$/);
+  if (mMatch) return new Date(now.getTime() - parseInt(mMatch[1]) * 60000);
+  const hMatch = timeAgo.match(/^(\d+)h ago$/);
+  if (hMatch) return new Date(now.getTime() - parseInt(hMatch[1]) * 3600000);
+  if (timeAgo === "Yesterday")
+    return new Date(now.getTime() - 86400000);
+  const dMatch = timeAgo.match(/^(\d+) days ago$/);
+  if (dMatch) return new Date(now.getTime() - parseInt(dMatch[1]) * 86400000);
+  return new Date(0); // old fallback
 }
 
 const styles = StyleSheet.create({
@@ -375,6 +527,24 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xs - 1,
     fontWeight: "600",
     color: "rgba(28,56,41,0.45)",
+  },
+  emptyActivity: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.xl,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderStyle: "dashed",
+    padding: Spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+  },
+  emptyActivityText: {
+    fontSize: FontSize.sm,
+    color: Colors.mutedText,
+    fontWeight: "600",
+    textAlign: "center",
+    lineHeight: 20,
   },
   activityCard: {
     backgroundColor: Colors.card,

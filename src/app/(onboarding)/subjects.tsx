@@ -86,7 +86,9 @@ export default function SubjectsScreen() {
 
         <Animated.View entering={FadeInDown.delay(500).springify()}>
           <Pressable
-            onPress={() => subjects.length > 0 && router.replace("/assessment")}
+            onPress={() =>
+              subjects.length > 0 && router.navigate("/assessment")
+            }
             disabled={subjects.length === 0}
             style={({ pressed }) => [
               styles.btn,

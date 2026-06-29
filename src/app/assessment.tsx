@@ -1,52 +1,103 @@
-import { useState, useCallback } from "react";
-import { View, Text, StyleSheet, Pressable } from "react-native";
-import { router } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import Animated, {
-  FadeInRight,
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from "react-native-reanimated";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
+import Animated, {
+  FadeInRight,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
+import { generateAssessmentQuiz } from "../services/sml/quizGenerator";
 import { useProfile } from "../store/profile";
-import { QUESTIONS } from "../constants/data";
-import { Colors, Radius, Spacing, FontSize } from "../constants/theme";
+import type { Flashcard } from "../store/vault";
 
 export default function AssessmentScreen() {
-  const { setScore } = useProfile();
-  const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers]   = useState<string[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [locked, setLocked]     = useState(false);
+  const { setScore, grade, subjects: selectedSubjects, language } = useProfile();
 
+  const [questions, setQuestions] = useState<Flashcard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [currentQ, setCurrentQ] = useState(0);
+  const [answers, setAnswers] = useState<string[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [locked, setLocked] = useState(false);
   const progressWidth = useSharedValue(0);
+
   const progressStyle = useAnimatedStyle(() => ({
     width: `${progressWidth.value}%` as any,
   }));
 
-  const q = QUESTIONS[currentQ];
+  useEffect(() => {
+    async function fetchAssessment() {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const generatedQuestions = await generateAssessmentQuiz(
+          grade,
+          selectedSubjects,
+          10,
+          language,
+        );
+        setQuestions(generatedQuestions);
+      } catch (err) {
+        console.error(err);
+        setError(
+          "Failed to generate assessment. Please check your connection and try again.",
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    if (grade && selectedSubjects) {
+      fetchAssessment();
+    } else {
+      setError(
+        "Missing profile details. Please go back and complete your profile.",
+      );
+      setIsLoading(false);
+    }
+  }, [grade, selectedSubjects, language]);
 
   const advanceQuestion = useCallback(
     (newAnswers: string[]) => {
       setSelected(null);
       setLocked(false);
-      if (currentQ < QUESTIONS.length - 1) {
+
+      if (currentQ < questions.length - 1) {
         setCurrentQ((n) => n + 1);
-        progressWidth.value = withTiming(((currentQ + 1) / QUESTIONS.length) * 100, { duration: 400 });
+        progressWidth.value = withTiming(
+          ((currentQ + 1) / questions.length) * 100,
+          { duration: 400 },
+        );
       } else {
-        const finalScore = newAnswers.filter((a, i) => a === QUESTIONS[i].answer).length;
+        const finalScore = newAnswers.filter(
+          (a, i) => a === questions[i].answer,
+        ).length;
         setScore(finalScore);
         router.replace("/results");
       }
     },
-    [currentQ, progressWidth, setScore]
+    [currentQ, progressWidth, setScore, questions],
   );
 
   const handleAnswer = (option: string) => {
     if (locked) return;
+    const q = questions[currentQ];
+
     setSelected(option);
     setLocked(true);
 
@@ -58,32 +109,64 @@ export default function AssessmentScreen() {
 
     const newAnswers = [...answers, option];
     setAnswers(newAnswers);
-
     setTimeout(() => runOnJS(advanceQuestion)(newAnswers), 900);
   };
 
   const getOptionStyle = (option: string) => {
-    if (!locked || option !== selected && option !== q.answer) return {};
+    const q = questions[currentQ];
+    if (!locked || (option !== selected && option !== q.answer)) return {};
     if (option === q.answer) return styles.optionCorrect;
     if (option === selected) return styles.optionWrong;
     return {};
   };
 
   const getOptionTextStyle = (option: string) => {
+    const q = questions[currentQ];
     if (!locked || (option !== selected && option !== q.answer)) return {};
     if (option === q.answer) return { color: Colors.primary };
     if (option === selected) return { color: "#EF4444" };
     return {};
   };
 
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+          <Text style={styles.loadingText}>
+            Generating your curriculum assessment...
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error || questions.length === 0) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>{error || "No questions found."}</Text>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <Text style={styles.backBtnText}>Go Back</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const q = questions[currentQ];
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.counter}>{currentQ + 1} of {QUESTIONS.length}</Text>
+          <Text style={styles.counter}>
+            {currentQ + 1} of {questions.length}
+          </Text>
           <View style={styles.dots}>
-            {QUESTIONS.map((_, i) => (
+            {questions.map((_, i) => (
               <View
                 key={i}
                 style={[
@@ -110,7 +193,7 @@ export default function AssessmentScreen() {
           <View style={styles.starBox}>
             <Ionicons name="star" size={20} color={Colors.primary} />
           </View>
-          <Text style={styles.questionText}>{q.text}</Text>
+          <Text style={styles.questionText}>{q.question}</Text>
         </Animated.View>
 
         {/* Options */}
@@ -149,13 +232,48 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xl,
     paddingBottom: Spacing.lg,
   },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: Spacing.xl,
+    gap: Spacing.md,
+  },
+  loadingText: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.mutedText,
+    textAlign: "center",
+  },
+  errorText: {
+    fontSize: FontSize.md,
+    fontWeight: "700",
+    color: Colors.forest,
+    textAlign: "center",
+    marginBottom: Spacing.md,
+  },
+  backBtn: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 12,
+    borderRadius: Radius.full,
+  },
+  backBtnText: {
+    color: "#fff",
+    fontWeight: "800",
+    fontSize: FontSize.sm,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     marginBottom: Spacing.sm,
   },
-  counter: { fontSize: FontSize.sm, fontWeight: "800", color: Colors.mutedText },
+  counter: {
+    fontSize: FontSize.sm,
+    fontWeight: "800",
+    color: Colors.mutedText,
+  },
   dots: { flexDirection: "row", gap: 6 },
   dot: {
     width: 8,
@@ -163,7 +281,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: "#D8E8D0",
   },
-  dotDone:    { backgroundColor: Colors.primary },
+  dotDone: { backgroundColor: Colors.primary },
   dotCurrent: { backgroundColor: Colors.green },
   progressTrack: {
     width: "100%",
@@ -225,7 +343,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   optionCorrect: { backgroundColor: "#E5F5EE", borderColor: Colors.primary },
-  optionWrong:   { backgroundColor: "#FEF2F2", borderColor: "#EF4444" },
+  optionWrong: { backgroundColor: "#FEF2F2", borderColor: "#EF4444" },
   optionPressed: { opacity: 0.85, transform: [{ scale: 0.97 }] },
   optionText: {
     fontSize: FontSize.sm,

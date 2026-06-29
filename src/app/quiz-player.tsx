@@ -5,6 +5,8 @@ import { useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Colors, FontSize, Radius, Spacing } from "../constants/theme";
+import { checkGradePromotion } from "../services/promotion/gradePromotion";
+import { useActivityStore } from "../store/activity";
 import { useVaultStore } from "../store/vault";
 
 type Feedback = "none" | "correct" | "incorrect";
@@ -62,8 +64,16 @@ export default function QuizPlayerScreen() {
         if (index === deck.cards.length - 1) {
           const finalScore = nextAnswers.filter(Boolean).length;
           updateDeckScore(deck.id, finalScore);
+          // Record daily activity for streak/heatmap tracking
+          useActivityStore.getState().recordActivity();
           setDone(true);
           isAdvancing.current = false;
+
+          // Check for grade promotion after a short delay
+          // so the results screen renders first
+          setTimeout(() => {
+            checkGradePromotion();
+          }, 1500);
           return;
         }
         setIndex((v) => v + 1);
@@ -87,12 +97,12 @@ export default function QuizPlayerScreen() {
 
           <Text style={styles.resultsTitle}>
             {pct >= 80
-              ? "Magaling! 🌟"
+              ? "Great job! 🌟"
               : pct >= 50
-                ? "Mabuti! 💪"
-                : "Subukan ulit! 📖"}
+                ? "Good effort! 💪"
+                : "Keep trying! 📖"}
           </Text>
-          <Text style={styles.resultsPct}>{pct}% tama</Text>
+          <Text style={styles.resultsPct}>{pct}% correct</Text>
 
           <View style={styles.breakdown}>
             <Text style={styles.breakdownTitle}>Breakdown</Text>
@@ -121,7 +131,7 @@ export default function QuizPlayerScreen() {
             style={({ pressed }) => [styles.doneBtn, pressed && styles.pressed]}
           >
             <Ionicons name="arrow-back" size={20} color="#fff" />
-            <Text style={styles.doneBtnText}>Bumalik sa Vault</Text>
+            <Text style={styles.doneBtnText}>Back to Vault</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
@@ -206,10 +216,10 @@ export default function QuizPlayerScreen() {
         </View>
 
         {feedback === "correct" && (
-          <Text style={styles.feedbackCorrect}>Tama! ✅</Text>
+          <Text style={styles.feedbackCorrect}>Correct! ✅</Text>
         )}
         {feedback === "incorrect" && (
-          <Text style={styles.feedbackWrong}>Tamang sagot: {card.answer}</Text>
+          <Text style={styles.feedbackWrong}>The correct answer is: {card.answer}</Text>
         )}
       </View>
     </SafeAreaView>

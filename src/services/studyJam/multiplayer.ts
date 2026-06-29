@@ -12,6 +12,12 @@ export type Player = {
 export type DiscoveredHost = {
   ip: string;
   name: string;
+  settings?: JamSettings;
+};
+
+export type JamSettings = {
+  subjectId: string;
+  questionsCount: number;
 };
 
 interface StudyJamState {
@@ -19,9 +25,12 @@ interface StudyJamState {
   me: Player | null;
   players: Player[];
 
-  status: "idle" | "hosting" | "connecting" | "waiting" | "playing";
+  status: "idle" | "hosting" | "connecting" | "waiting" | "playing" | "generating";
 
   error: string | null;
+
+  settings: JamSettings | null;
+  questions: any[] | null;
 
   discoveredHosts: DiscoveredHost[];
 
@@ -35,7 +44,7 @@ interface StudyJamState {
 
   broadcastInterval: ReturnType<typeof setInterval> | null;
 
-  hostRoom: (name: string) => Promise<void>;
+  hostRoom: (name: string, settings: JamSettings) => Promise<void>;
   joinRoom: (ip: string, name: string) => void;
 
   startDiscovery: () => void;
@@ -43,7 +52,8 @@ interface StudyJamState {
 
   leaveRoom: () => void;
 
-  startGame: () => void;
+  startGame: (questions: any[]) => void;
+  setGenerating: () => void;
 
   broadcastState: () => void;
 }
@@ -61,6 +71,9 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
   status: "idle",
   error: null,
 
+  settings: null,
+  questions: null,
+
   discoveredHosts: [],
 
   server: null,
@@ -77,7 +90,7 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
   // HOST
   // ==========================
 
-  hostRoom: async (hostName) => {
+  hostRoom: async (hostName, settings) => {
     try {
       get().leaveRoom();
 
@@ -143,6 +156,7 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
         me,
         players: [me],
         status: "waiting",
+        settings,
         server,
         broadcastSocket: udp,
         error: null,
@@ -172,7 +186,7 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
           }
 
           try {
-            const msg = `STUDYJAM_HOST:${hostName}`;
+            const msg = `STUDYJAM_HOST:${hostName}:${settings.subjectId}:${settings.questionsCount}`;
 
             udp.send(
               msg,
@@ -249,6 +263,8 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
             me,
             players: msg.players,
             status: msg.status,
+            settings: msg.settings,
+            questions: msg.questions,
             client,
           });
         }
@@ -293,9 +309,14 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
         const text = msg.toString();
 
         if (text.startsWith("STUDYJAM_HOST:")) {
+          const parts = text.split(":");
           const host = {
             ip: rinfo.address,
-            name: text.replace("STUDYJAM_HOST:", ""),
+            name: parts[1],
+            settings: parts.length >= 4 ? {
+              subjectId: parts[2],
+              questionsCount: parseInt(parts[3], 10),
+            } : undefined,
           };
 
           set((state) => {
@@ -342,12 +363,14 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
   // ==========================
 
   broadcastState: () => {
-    const { connectedClients, players, status } = get();
+    const { connectedClients, players, status, settings, questions } = get();
 
     const payload = JSON.stringify({
       type: "SYNC",
       players,
       status,
+      settings,
+      questions,
     });
 
     connectedClients.forEach((c) => {
@@ -357,9 +380,15 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
     });
   },
 
-  startGame: () => {
+  setGenerating: () => {
+    set({ status: "generating" });
+    get().broadcastState();
+  },
+
+  startGame: (questions) => {
     set({
       status: "playing",
+      questions,
     });
 
     get().broadcastState();
@@ -412,6 +441,8 @@ export const useMultiplayerStore = create<StudyJamState>((set, get) => ({
       players: [],
       status: "idle",
       error: null,
+      settings: null,
+      questions: null,
       server: null,
       client: null,
       connectedClients: [],

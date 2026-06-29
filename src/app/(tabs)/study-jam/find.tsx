@@ -13,12 +13,53 @@ import {
     View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
 import { Colors, FontSize, Radius, Spacing } from "../../../constants/theme";
 import { useMultiplayerStore } from "../../../services/studyJam/multiplayer";
+import { useProfile } from "../../../store/profile";
+
+function PulseRing() {
+  const scale = useSharedValue(0.8);
+  const opacity = useSharedValue(0.8);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(1.5, { duration: 1500, easing: Easing.out(Easing.ease) }),
+      -1,
+      false,
+    );
+    opacity.value = withRepeat(
+      withTiming(0, { duration: 1500, easing: Easing.out(Easing.ease) }),
+      -1,
+      false,
+    );
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  return (
+    <View style={styles.pulseContainer}>
+      <Animated.View style={[styles.pulseRing, animatedStyle]} />
+      <View style={styles.pulseCore}>
+        <Ionicons name="radio-outline" size={24} color="#fff" />
+      </View>
+    </View>
+  );
+}
 
 export default function FindScreen() {
+  const { name: profileName } = useProfile();
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(profileName || "");
   const [manualIp, setManualIp] = useState("");
 
   const {
@@ -42,8 +83,8 @@ export default function FindScreen() {
   }, []);
 
   useEffect(() => {
-    if (status === "playing") {
-      router.push("/study-session");
+    if (status === "playing" || status === "generating") {
+      router.push("/study-jam-battle");
     }
   }, [status, router]);
 
@@ -100,6 +141,7 @@ export default function FindScreen() {
                 <Text style={styles.playerName}>
                   {p.name}
                   {p.id === me?.id ? " (You)" : ""}
+                  {p.isHost ? " (Host)" : ""}
                 </Text>
               </View>
             ))}
@@ -143,9 +185,9 @@ export default function FindScreen() {
         <Text style={styles.sectionTitle}>Nearby Jams</Text>
         {discoveredHosts.length === 0 ? (
           <View style={styles.scanningBox}>
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <PulseRing />
             <Text style={styles.scanningText}>
-              Scanning Wi-Fi for local hosts...
+              Naghahanap ng malapit na Study Jam...
             </Text>
           </View>
         ) : (
@@ -162,7 +204,13 @@ export default function FindScreen() {
               >
                 <View style={styles.hostInfo}>
                   <Text style={styles.hostName}>{item.name}'s Jam</Text>
-                  <Text style={styles.hostIp}>{item.ip}</Text>
+                  {item.settings ? (
+                    <Text style={styles.hostIp}>
+                      {item.settings.questionsCount} questions
+                    </Text>
+                  ) : (
+                    <Text style={styles.hostIp}>{item.ip}</Text>
+                  )}
                 </View>
                 <View style={styles.joinBadge}>
                   <Text style={styles.joinText}>Join</Text>
@@ -412,5 +460,32 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
     transform: [{ scale: 0.98 }],
+  },
+  pulseContainer: {
+    position: "relative",
+    width: 60,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pulseRing: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: Colors.primary,
+  },
+  pulseCore: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
 });
