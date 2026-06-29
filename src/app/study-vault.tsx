@@ -20,6 +20,13 @@ export default function StudyVaultScreen() {
         <Text style={styles.pageSub}>
           Quizzes created from your scanned lessons.
         </Text>
+        <Pressable
+          onPress={() => router.push("/create-deck" as any)}
+          style={({ pressed }) => [styles.createBtn, pressed && styles.pressed]}
+        >
+          <Ionicons name="sparkles" size={18} color="#fff" />
+          <Text style={styles.createBtnText}>Create Deck from Material</Text>
+        </Pressable>
 
         {decks.length === 0 ? (
           <View style={styles.emptyState}>
@@ -103,6 +110,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: Colors.background,
   },
+  createBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: Spacing.sm,
+    backgroundColor: Colors.primary,
+    paddingVertical: 14,
+    borderRadius: Radius.full,
+    marginBottom: Spacing.md,
+    shadowColor: Colors.primary,
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  createBtnText: { color: "#fff", fontWeight: "900", fontSize: FontSize.md },
   header: {
     flexDirection: "row",
     alignItems: "center",
